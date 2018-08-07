@@ -6,9 +6,9 @@
 }
 
 .horizontal-filmstrip .filmstrip {
-    position: absolute;
-    bottom: 0;
-    right: 0;
+    // position: absolute;
+    // bottom: 0;
+    // right: 0;
     padding: 10px 5px;
     @extend %align-right;
     transition: bottom .3s;

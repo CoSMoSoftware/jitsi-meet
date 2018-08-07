@@ -62,7 +62,7 @@ var interfaceConfig = {
     /**
      * Whether to only show the filmstrip (and hide the toolbar).
      */
-    filmStripOnly: false,
+    filmStripOnly: true,
 
     /**
      * Whether to show thumbnails in filmstrip as a column instead of as a row.
@@ -73,7 +73,7 @@ var interfaceConfig = {
     CLOSE_PAGE_GUEST_HINT: false,
     RANDOM_AVATAR_URL_PREFIX: false,
     RANDOM_AVATAR_URL_SUFFIX: false,
-    FILM_STRIP_MAX_HEIGHT: 120,
+    FILM_STRIP_MAX_HEIGHT: 540,
 
     // Enables feedback star animation.
     ENABLE_FEEDBACK_ANIMATION: false,

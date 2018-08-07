@@ -54,6 +54,7 @@
      */
     &__toolbar,
     &__toptoolbar {
+        visibility: hidden;
         position: absolute;
         left: 0;
         pointer-events: none;
@@ -205,12 +206,12 @@
     display:inline-block;
 }
 
-.flipVideoX {
-    transform: scale(-1, 1);
-    -moz-transform: scale(-1, 1);
-    -webkit-transform: scale(-1, 1);
-    -o-transform: scale(-1, 1);
-}
+// .flipVideoX {
+//     transform: scale(-1, 1);
+//     -moz-transform: scale(-1, 1);
+//     -webkit-transform: scale(-1, 1);
+//     -o-transform: scale(-1, 1);
+// }
 
 #localVideoWrapper video,
 #localVideoWrapper object {
@@ -434,7 +435,7 @@
 .videocontainer>.audioindicator-container {
     position: absolute;
     display: inline-block;
-    left: 6px;
+    left: -10px;
     top: 50%;
     margin-top: -17px;
     width: 6px;
@@ -596,10 +597,10 @@
     filter: blur(10px) grayscale(.5) opacity(0.8);
 }
 
-.videoThumbnailProblemFilter {
-    -webkit-filter: grayscale(100%);
-    filter: grayscale(100%);
-}
+// .videoThumbnailProblemFilter {
+//     -webkit-filter: grayscale(100%);
+//     filter: grayscale(100%);
+// }
 
 #remotePresenceMessage,
 #remoteConnectionMessage {

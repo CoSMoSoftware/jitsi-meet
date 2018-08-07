@@ -449,20 +449,22 @@ const Filmstrip = {
             // eslint-disable-next-line no-shadow
             thumbs.localThumb.css({
                 display: 'inline-block',
-                height: `${local.thumbHeight}px`,
-                'min-height': `${local.thumbHeight}px`,
-                'min-width': `${local.thumbWidth}px`,
-                width: `${local.thumbWidth}px`
+                height: '360px',
+                'min-height': '360px',
+                'min-width': '540px',
+                width: '540px',
+                margin: '15px'
             });
         }
 
         if (thumbs.remoteThumbs) {
             thumbs.remoteThumbs.css({
                 display: 'inline-block',
-                height: `${remote.thumbHeight}px`,
-                'min-height': `${remote.thumbHeight}px`,
-                'min-width': `${remote.thumbWidth}px`,
-                width: `${remote.thumbWidth}px`
+                height: '360px',
+                'min-height': '360px',
+                'min-width': '540px',
+                width: '540px',
+                margin: '15px'
             });
         }
 
