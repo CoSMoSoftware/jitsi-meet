@@ -15,7 +15,7 @@ $hangupFontSize: 2em;
 $thumbnailToolbarHeight: 22px;
 $thumbnailIndicatorBorder: 2px;
 $thumbnailIndicatorSize: $thumbnailToolbarHeight;
-$thumbnailVideoMargin: 2px;
+$thumbnailVideoMargin: 15px;
 $thumbnailsBorder: 0px;
 $thumbnailVideoBorder: 0px;
 $filmstripToggleButtonWidth: 17px;
@@ -78,7 +78,7 @@ $modalTextColor: #333;
 /**
  * Misc.
  */
-$borderRadius: 4px;
+$borderRadius: 0px;
 $defaultWatermarkLink: '../images/watermark.png';
 $sidebarWidth: 220px;
 $popoverMenuPadding: 13px;
