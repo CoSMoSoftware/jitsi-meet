@@ -1,12 +1,48 @@
-import PropTypes from 'prop-types';
+/* @flow */
+
 import React, { Component } from 'react';
+
+/**
+ * The type of the React {@code Component} props of {@link Video}.
+ */
+type Props = {
+
+    /**
+     * CSS classes to add to the video element.
+     */
+    className: string,
+
+    /**
+     * The value of the id attribute of the video. Used by the torture tests to
+     * locate video elements.
+     */
+    id: string,
+
+    /**
+     * Optional callback to invoke once the video starts playing.
+     */
+    onVideoPlaying?: Function,
+
+    /**
+     * The JitsiLocalTrack to display.
+     */
+    videoTrack: ?Object,
+
+    /**
+     * Used to determine the value of the autoplay attribute of the underlying
+     * video element.
+     */
+    autoPlay: boolean
+};
 
 /**
  * Component that renders a video element for a passed in video track.
  *
  * @extends Component
  */
-class Video extends Component {
+class Video extends Component<Props> {
+    _videoElement: ?Object;
+
     /**
      * Default values for {@code Video} component's properties.
      *
@@ -14,36 +50,8 @@ class Video extends Component {
      */
     static defaultProps = {
         className: '',
-
+        autoPlay: true,
         id: ''
-    };
-
-    /**
-     * {@code Video} component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * CSS classes to add to the video element.
-         */
-        className: PropTypes.string,
-
-        /**
-         * The value of the id attribute of the video. Used by the torture tests
-         * to locate video elements.
-         */
-        id: PropTypes.string,
-
-        /**
-         * Optional callback to invoke once the video starts playing.
-         */
-        onVideoPlaying: PropTypes.func,
-
-        /**
-         * The JitsiLocalTrack to display.
-         */
-        videoTrack: PropTypes.object
     };
 
     /**
@@ -52,7 +60,7 @@ class Video extends Component {
      * @param {Object} props - The read-only properties with which the new
      * instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         /**
@@ -78,8 +86,10 @@ class Video extends Component {
      * @returns {void}
      */
     componentDidMount() {
-        this._videoElement.volume = 0;
-        this._videoElement.onplaying = this._onVideoPlaying;
+        if (this._videoElement) {
+            this._videoElement.volume = 0;
+            this._videoElement.onplaying = this._onVideoPlaying;
+        }
 
         this._attachTrack(this.props.videoTrack);
     }
@@ -98,13 +108,13 @@ class Video extends Component {
     /**
      * Updates the video display only if a new track is added. This component's
      * updating is blackboxed from React to prevent re-rendering of video
-     * element, as the lib uses track.attach(videoElement) instead.
+     * element, as the lib uses {@code track.attach(videoElement)} instead.
      *
      * @inheritdoc
-     * @returns {boolean} - False is always returned to blackbox this component.
+     * @returns {boolean} - False is always returned to blackbox this component
      * from React.
      */
-    shouldComponentUpdate(nextProps) {
+    shouldComponentUpdate(nextProps: Props) {
         const currentJitsiTrack = this.props.videoTrack
             && this.props.videoTrack.jitsiTrack;
         const nextJitsiTrack = nextProps.videoTrack
@@ -127,7 +137,7 @@ class Video extends Component {
     render() {
         return (
             <video
-                autoPlay = { true }
+                autoPlay = { this.props.autoPlay }
                 className = { this.props.className }
                 id = { this.props.id }
                 ref = { this._setVideoElement } />
@@ -167,6 +177,8 @@ class Video extends Component {
         }
     }
 
+    _onVideoPlaying: () => void;
+
     /**
      * Invokes the onvideoplaying callback if defined.
      *
@@ -178,6 +190,8 @@ class Video extends Component {
             this.props.onVideoPlaying();
         }
     }
+
+    _setVideoElement: () => void;
 
     /**
      * Sets an instance variable for the component's video element so it can be

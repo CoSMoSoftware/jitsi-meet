@@ -7,8 +7,16 @@ import {
 } from '../../transport';
 
 import electronPopupsConfig from './electronPopupsConfig.json';
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+import {
+    getAvailableDevices,
+    getCurrentDevices,
+    isDeviceChangeAvailable,
+    isDeviceListAvailable,
+    isMultipleAudioInputSupported,
+    setAudioInputDevice,
+    setAudioOutputDevice,
+    setVideoInputDevice
+} from './functions';
 
 const ALWAYS_ON_TOP_FILENAMES = [
     'css/all.css', 'libs/alwaysontop.min.js'
@@ -23,11 +31,15 @@ const commands = {
     displayName: 'display-name',
     email: 'email',
     hangup: 'video-hangup',
+    password: 'password',
+    sendTones: 'send-tones',
+    subject: 'subject',
     submitFeedback: 'submit-feedback',
     toggleAudio: 'toggle-audio',
     toggleChat: 'toggle-chat',
     toggleFilmStrip: 'toggle-film-strip',
     toggleShareScreen: 'toggle-share-screen',
+    toggleTileView: 'toggle-tile-view',
     toggleVideo: 'toggle-video'
 };
 
@@ -39,19 +51,31 @@ const events = {
     'avatar-changed': 'avatarChanged',
     'audio-availability-changed': 'audioAvailabilityChanged',
     'audio-mute-status-changed': 'audioMuteStatusChanged',
+    'camera-error': 'cameraError',
+    'device-list-changed': 'deviceListChanged',
     'display-name-change': 'displayNameChange',
     'email-change': 'emailChange',
     'feedback-submitted': 'feedbackSubmitted',
+    'feedback-prompt-displayed': 'feedbackPromptDisplayed',
+    'filmstrip-display-changed': 'filmstripDisplayChanged',
     'incoming-message': 'incomingMessage',
+    'mic-error': 'micError',
     'outgoing-message': 'outgoingMessage',
     'participant-joined': 'participantJoined',
+    'participant-kicked-out': 'participantKickedOut',
     'participant-left': 'participantLeft',
+    'password-required': 'passwordRequired',
+    'proxy-connection-event': 'proxyConnectionEvent',
     'video-ready-to-close': 'readyToClose',
     'video-conference-joined': 'videoConferenceJoined',
     'video-conference-left': 'videoConferenceLeft',
     'video-availability-changed': 'videoAvailabilityChanged',
     'video-mute-status-changed': 'videoMuteStatusChanged',
-    'screen-sharing-status-changed': 'screenSharingStatusChanged'
+    'screen-sharing-status-changed': 'screenSharingStatusChanged',
+    'dominant-speaker-changed': 'dominantSpeakerChanged',
+    'subject-change': 'subjectChange',
+    'suspend-detected': 'suspendDetected',
+    'tile-view-changed': 'tileViewChanged'
 };
 
 /**
@@ -114,10 +138,10 @@ function parseArguments(args) {
 
     switch (typeof firstArg) {
     case 'string': // old arguments format
-    case undefined: // eslint-disable-line no-case-declarations
-    // not sure which format but we are trying to parse the old
-    // format because if the new format is used everything will be undefined
-    // anyway.
+    case undefined: {
+        // Not sure which format but we are trying to parse the old
+        // format because if the new format is used everything will be undefined
+        // anyway.
         const [
             roomName,
             width,
@@ -141,6 +165,7 @@ function parseArguments(args) {
             jwt,
             onload
         };
+    }
     case 'object': // new arguments format
         return args[0];
     default:
@@ -205,6 +230,10 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * for iframe onload event.
      * @param {Array<Object>} [options.invitees] - Array of objects containing
      * information about new participants that will be invited in the call.
+     * @param {Array<Object>} [options.devices] - Array of objects containing
+     * information about the initial devices that will be used in the call.
+     * @param {Object} [options.userInfo] - Object containing information about
+     * the participant opening the meeting.
      */
     constructor(domain, ...args) {
         super();
@@ -218,7 +247,9 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
             noSSL = false,
             jwt = undefined,
             onload = undefined,
-            invitees
+            invitees,
+            devices,
+            userInfo
         } = parseArguments(args);
 
         this._parentNode = parentNode;
@@ -227,7 +258,9 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
             interfaceConfigOverwrite,
             jwt,
             noSSL,
-            roomName
+            roomName,
+            devices,
+            userInfo
         });
         this._createIFrame(height, width, onload);
         this._transport = new Transport({
@@ -334,6 +367,30 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
         }
 
         return iframe.contentWindow.document.getElementById('largeVideo');
+    }
+
+    /**
+     * Getter for participant specific video element in Jitsi Meet.
+     *
+     * @param {string|undefined} participantId - Id of participant to return the video for.
+     *
+     * @returns {HTMLElement|undefined} - The requested video. Will return the local video
+     * by default if participantId is undefined.
+     */
+    _getParticipantVideo(participantId) {
+        const iframe = this.getIFrame();
+
+        if (!iframe
+                || !iframe.contentWindow
+                || !iframe.contentWindow.document) {
+            return;
+        }
+
+        if (typeof participantId === 'undefined' || participantId === this._myUserID) {
+            return iframe.contentWindow.document.getElementById('localVideo_container');
+        }
+
+        return iframe.contentWindow.document.querySelector(`#participant_${participantId} video`);
     }
 
     /**
@@ -461,55 +518,64 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * the event and value - the listener.
      * Currently we support the following
      * events:
-     * incomingMessage - receives event notifications about incoming
+     * {@code incomingMessage} - receives event notifications about incoming
      * messages. The listener will receive object with the following structure:
      * {{
      *  'from': from,//JID of the user that sent the message
      *  'nick': nick,//the nickname of the user that sent the message
      *  'message': txt//the text of the message
      * }}
-     * outgoingMessage - receives event notifications about outgoing
+     * {@code outgoingMessage} - receives event notifications about outgoing
      * messages. The listener will receive object with the following structure:
      * {{
      *  'message': txt//the text of the message
      * }}
-     * displayNameChanged - receives event notifications about display name
-     * change. The listener will receive object with the following structure:
+     * {@code displayNameChanged} - receives event notifications about display
+     * name change. The listener will receive object with the following
+     * structure:
      * {{
      * jid: jid,//the JID of the participant that changed his display name
      * displayname: displayName //the new display name
      * }}
-     * participantJoined - receives event notifications about new participant.
+     * {@code participantJoined} - receives event notifications about new
+     * participant.
      * The listener will receive object with the following structure:
      * {{
      * jid: jid //the jid of the participant
      * }}
-     * participantLeft - receives event notifications about the participant that
-     * left the room.
+     * {@code participantLeft} - receives event notifications about the
+     * participant that left the room.
      * The listener will receive object with the following structure:
      * {{
      * jid: jid //the jid of the participant
      * }}
-     * video-conference-joined - receives event notifications about the local
-     * user has successfully joined the video conference.
+     * {@code videoConferenceJoined} - receives event notifications about the
+     * local user has successfully joined the video conference.
      * The listener will receive object with the following structure:
      * {{
      * roomName: room //the room name of the conference
      * }}
-     * video-conference-left - receives event notifications about the local user
-     * has left the video conference.
+     * {@code videoConferenceLeft} - receives event notifications about the
+     * local user has left the video conference.
      * The listener will receive object with the following structure:
      * {{
      * roomName: room //the room name of the conference
      * }}
-     * screenSharingStatusChanged - receives event notifications about
+     * {@code screenSharingStatusChanged} - receives event notifications about
      * turning on/off the local user screen sharing.
      * The listener will receive object with the following structure:
      * {{
      * on: on //whether screen sharing is on
      * }}
-     * readyToClose - all hangup operations are completed and Jitsi Meet is
-     * ready to be disposed.
+     * {@code dominantSpeakerChanged} - receives event notifications about
+     * change in the dominant speaker.
+     * The listener will receive object with the following structure:
+     * {{
+     * id: participantId //participantId of the new dominant speaker
+     * }}
+     * {@code suspendDetected} - receives event notifications about detecting suspend event in host computer.
+     * {@code readyToClose} - all hangup operations are completed and Jitsi Meet
+     * is ready to be disposed.
      * @returns {void}
      *
      * @deprecated
@@ -527,20 +593,25 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * @returns {void}
      */
     dispose() {
+        this.emit('_willDispose');
         this._transport.dispose();
         this.removeAllListeners();
-        if (this._frame) {
+        if (this._frame && this._frame.parentNode) {
             this._frame.parentNode.removeChild(this._frame);
         }
     }
 
     /**
      * Executes command. The available commands are:
-     * displayName - sets the display name of the local participant to the value
-     * passed in the arguments array.
-     * toggleAudio - mutes / unmutes audio with no arguments.
-     * toggleVideo - mutes / unmutes video with no arguments.
-     * toggleFilmStrip - hides / shows the filmstrip with no arguments.
+     * {@code displayName} - Sets the display name of the local participant to
+     * the value passed in the arguments array.
+     * {@code subject} - Sets the subject of the conference, the value passed
+     * in the arguments array. Note: Available only for moderator.
+     *
+     * {@code toggleAudio} - Mutes / unmutes audio with no arguments.
+     * {@code toggleVideo} - Mutes / unmutes video with no arguments.
+     * {@code toggleFilmStrip} - Hides / shows the filmstrip with no arguments.
+     *
      * If the command doesn't require any arguments the parameter should be set
      * to empty array or it may be omitted.
      *
@@ -549,7 +620,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      */
     executeCommand(name, ...args) {
         if (!(name in commands)) {
-            logger.error('Not supported command name.');
+            console.error('Not supported command name.');
 
             return;
         }
@@ -561,13 +632,13 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
 
     /**
      * Executes commands. The available commands are:
-     * displayName - sets the display name of the local participant to the value
-     * passed in the arguments array.
-     * toggleAudio - mutes / unmutes audio. no arguments
-     * toggleVideo - mutes / unmutes video. no arguments
-     * toggleFilmStrip - hides / shows the filmstrip. no arguments
-     * toggleChat - hides / shows chat. no arguments.
-     * toggleShareScreen - starts / stops screen sharing. no arguments.
+     * {@code displayName} - Sets the display name of the local participant to
+     * the value passed in the arguments array.
+     * {@code toggleAudio} - Mutes / unmutes audio. No arguments.
+     * {@code toggleVideo} - Mutes / unmutes video. No arguments.
+     * {@code toggleFilmStrip} - Hides / shows the filmstrip. No arguments.
+     * {@code toggleChat} - Hides / shows chat. No arguments.
+     * {@code toggleShareScreen} - Starts / stops screen sharing. No arguments.
      *
      * @param {Object} commandList - The object with commands to be executed.
      * The keys of the object are the commands that will be executed and the
@@ -581,6 +652,24 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
+     * Returns Promise that resolves with a list of available devices.
+     *
+     * @returns {Promise}
+     */
+    getAvailableDevices() {
+        return getAvailableDevices(this._transport);
+    }
+
+    /**
+     * Returns Promise that resolves with current selected devices.
+     *
+     * @returns {Promise}
+     */
+    getCurrentDevices() {
+        return getCurrentDevices(this._transport);
+    }
+
+    /**
      * Check if the audio is available.
      *
      * @returns {Promise} - Resolves with true if the audio available, with
@@ -590,6 +679,38 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
         return this._transport.sendRequest({
             name: 'is-audio-available'
         });
+    }
+
+    /**
+     * Returns Promise that resolves with true if the device change is available
+     * and with false if not.
+     *
+     * @param {string} [deviceType] - Values - 'output', 'input' or undefined.
+     * Default - 'input'.
+     * @returns {Promise}
+     */
+    isDeviceChangeAvailable(deviceType) {
+        return isDeviceChangeAvailable(this._transport, deviceType);
+    }
+
+    /**
+     * Returns Promise that resolves with true if the device list is available
+     * and with false if not.
+     *
+     * @returns {Promise}
+     */
+    isDeviceListAvailable() {
+        return isDeviceListAvailable(this._transport);
+    }
+
+    /**
+     * Returns Promise that resolves with true if multiple audio input is supported
+     * and with false if not.
+     *
+     * @returns {Promise}
+     */
+    isMultipleAudioInputSupported() {
+        return isMultipleAudioInputSupported(this._transport);
     }
 
     /**
@@ -737,6 +858,61 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      */
     removeEventListeners(eventList) {
         eventList.forEach(event => this.removeEventListener(event));
+    }
+
+    /**
+     * Passes an event along to the local conference participant to establish
+     * or update a direct peer connection. This is currently used for developing
+     * wireless screensharing with room integration and it is advised against to
+     * use as its api may change.
+     *
+     * @param {Object} event - An object with information to pass along.
+     * @param {Object} event.data - The payload of the event.
+     * @param {string} event.from - The jid of the sender of the event. Needed
+     * when a reply is to be sent regarding the event.
+     * @returns {void}
+     */
+    sendProxyConnectionEvent(event) {
+        this._transport.sendEvent({
+            data: [ event ],
+            name: 'proxy-connection-event'
+        });
+    }
+
+    /**
+     * Sets the audio input device to the one with the label or id that is
+     * passed.
+     *
+     * @param {string} label - The label of the new device.
+     * @param {string} deviceId - The id of the new device.
+     * @returns {Promise}
+     */
+    setAudioInputDevice(label, deviceId) {
+        return setAudioInputDevice(this._transport, label, deviceId);
+    }
+
+    /**
+     * Sets the audio output device to the one with the label or id that is
+     * passed.
+     *
+     * @param {string} label - The label of the new device.
+     * @param {string} deviceId - The id of the new device.
+     * @returns {Promise}
+     */
+    setAudioOutputDevice(label, deviceId) {
+        return setAudioOutputDevice(this._transport, label, deviceId);
+    }
+
+    /**
+     * Sets the video input device to the one with the label or id that is
+     * passed.
+     *
+     * @param {string} label - The label of the new device.
+     * @param {string} deviceId - The id of the new device.
+     * @returns {Promise}
+     */
+    setVideoInputDevice(label, deviceId) {
+        return setVideoInputDevice(this._transport, label, deviceId);
     }
 
     /**

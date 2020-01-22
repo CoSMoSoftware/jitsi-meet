@@ -1,6 +1,57 @@
 // @flow
 
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+/**
+ * Creates a deferred object.
+ *
+ * @returns {{promise, resolve, reject}}
+ */
+export function createDeferred(): Object {
+    const deferred = {};
+
+    deferred.promise = new Promise((resolve, reject) => {
+        deferred.resolve = resolve;
+        deferred.reject = reject;
+    });
+
+    return deferred;
+}
+
+const MATCH_OPERATOR_REGEXP = /[|\\{}()[\]^$+*?.-]/g;
+
+/**
+ * Escape RegExp special characters.
+ *
+ * Based on https://github.com/sindresorhus/escape-string-regexp.
+ *
+ * @param {string} s - The regexp string to escape.
+ * @returns {string}
+ */
+export function escapeRegexp(s: string) {
+    if (typeof s !== 'string') {
+        throw new TypeError('Expected a string');
+    }
+
+    return s.replace(MATCH_OPERATOR_REGEXP, '\\$&');
+}
+
+/**
+ * Returns the base URL of the app.
+ *
+ * @param {Object} w - Window object to use instead of the built in one.
+ * @returns {string}
+ */
+export function getBaseUrl(w: Object = window) {
+    const doc = w.document;
+    const base = doc.querySelector('base');
+
+    if (base && base.href) {
+        return base.href;
+    }
+
+    const { protocol, host } = w.location;
+
+    return `${protocol}//${host}`;
+}
 
 /**
  * Returns the namespace for all global variables, functions, etc that we need.
@@ -19,29 +70,6 @@ export function getJitsiMeetGlobalNS() {
     }
 
     return window.JitsiMeetJS.app;
-}
-
-/**
- * Gets the description of a specific {@code Symbol}.
- *
- * @param {Symbol} symbol - The {@code Symbol} to retrieve the description of.
- * @private
- * @returns {string} The description of {@code symbol}.
- */
-export function getSymbolDescription(symbol: ?Symbol) {
-    let description = symbol ? symbol.toString() : 'undefined';
-
-    if (description.startsWith('Symbol(') && description.endsWith(')')) {
-        description = description.slice(7, -1);
-    }
-
-    // The polyfill es6-symbol that we use does not appear to comply with the
-    // Symbol standard and, merely, adds @@ at the beginning of the description.
-    if (description.startsWith('@@')) {
-        description = description.slice(2);
-    }
-
-    return description;
 }
 
 /**
@@ -76,6 +104,6 @@ export function assignIfDefined(target: Object, source: Object) {
  * @returns {void}
  */
 export function reportError(e: Object, msg: string = '') {
-    logger.error(msg, e);
+    console.error(msg, e);
     window.onerror && window.onerror(msg, null, null, null, e);
 }

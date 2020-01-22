@@ -1,7 +1,7 @@
 import { ReducerRegistry } from '../base/redux';
 
 import {
-    REMOVE_TRANSCRIPT_MESSAGE,
+    REMOVE_TRANSCRIPT_MESSAGE, TOGGLE_REQUESTING_SUBTITLES,
     UPDATE_TRANSCRIPT_MESSAGE
 } from './actionTypes';
 
@@ -9,7 +9,8 @@ import {
  * Default State for 'features/transcription' feature
  */
 const defaultState = {
-    transcriptMessages: new Map()
+    _transcriptMessages: new Map(),
+    _requestingSubtitles: false
 };
 
 /**
@@ -21,9 +22,14 @@ ReducerRegistry.register('features/subtitles', (
     switch (action.type) {
     case REMOVE_TRANSCRIPT_MESSAGE:
         return _removeTranscriptMessage(state, action);
-
     case UPDATE_TRANSCRIPT_MESSAGE:
         return _updateTranscriptMessage(state, action);
+
+    case TOGGLE_REQUESTING_SUBTITLES:
+        return {
+            ...state,
+            _requestingSubtitles: !state._requestingSubtitles
+        };
     }
 
     return state;
@@ -39,14 +45,14 @@ ReducerRegistry.register('features/subtitles', (
  * reduction of the specified action.
  */
 function _removeTranscriptMessage(state, { transcriptMessageID }) {
-    const newTranscriptMessages = new Map(state.transcriptMessages);
+    const newTranscriptMessages = new Map(state._transcriptMessages);
 
     // Deletes the key from Map once a final message arrives.
     newTranscriptMessages.delete(transcriptMessageID);
 
     return {
         ...state,
-        transcriptMessages: newTranscriptMessages
+        _transcriptMessages: newTranscriptMessages
     };
 }
 
@@ -61,13 +67,13 @@ function _removeTranscriptMessage(state, { transcriptMessageID }) {
  */
 function _updateTranscriptMessage(state,
         { transcriptMessageID, newTranscriptMessage }) {
-    const newTranscriptMessages = new Map(state.transcriptMessages);
+    const newTranscriptMessages = new Map(state._transcriptMessages);
 
     // Updates the new message for the given key in the Map.
     newTranscriptMessages.set(transcriptMessageID, newTranscriptMessage);
 
     return {
         ...state,
-        transcriptMessages: newTranscriptMessages
+        _transcriptMessages: newTranscriptMessages
     };
 }

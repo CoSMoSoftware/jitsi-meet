@@ -1,50 +1,55 @@
 // @flow
 
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 
 import { Dialog } from '../../base/dialog';
 import { translate } from '../../base/i18n';
 import { getLocalParticipant } from '../../base/participants';
+import { connect } from '../../base/redux';
+
 import SpeakerStatsItem from './SpeakerStatsItem';
 import SpeakerStatsLabels from './SpeakerStatsLabels';
 
 declare var interfaceConfig: Object;
 
 /**
+ * The type of the React {@code Component} props of {@link SpeakerStats}.
+ */
+type Props = {
+
+    /**
+     * The display name for the local participant obtained from the redux store.
+     */
+    _localDisplayName: string,
+
+    /**
+     * The JitsiConference from which stats will be pulled.
+     */
+    conference: Object,
+
+    /**
+     * The function to translate human-readable text.
+     */
+    t: Function
+};
+
+/**
+ * The type of the React {@code Component} state of {@link SpeakerStats}.
+ */
+type State = {
+
+    /**
+     * The stats summary provided by the JitsiConference.
+     */
+    stats: Object
+};
+
+/**
  * React component for displaying a list of speaker stats.
  *
  * @extends Component
  */
-class SpeakerStats extends Component<*, *> {
-    /**
-     * SpeakerStats component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The display name for the local participant obtained from the redux
-         * store.
-         */
-        _localDisplayName: PropTypes.string,
-
-        /**
-         * The JitsiConference from which stats will be pulled.
-         */
-        conference: PropTypes.object,
-
-        /**
-         * The function to translate human-readable text.
-         */
-        t: PropTypes.func
-    };
-
-    state = {
-        stats: {}
-    };
-
+class SpeakerStats extends Component<Props, State> {
     _updateInterval: IntervalID;
 
     /**
@@ -56,19 +61,20 @@ class SpeakerStats extends Component<*, *> {
     constructor(props) {
         super(props);
 
+        this.state = {
+            stats: this.props.conference.getSpeakerStats()
+        };
+
         // Bind event handlers so they are only bound once per instance.
         this._updateStats = this._updateStats.bind(this);
     }
 
     /**
-     * Immediately request for updated speaker stats and begin
-     * polling for speaker stats updates.
+     * Begin polling for speaker stats updates.
      *
      * @inheritdoc
-     * @returns {void}
      */
-    componentWillMount() {
-        this._updateStats();
+    componentDidMount() {
         this._updateInterval = setInterval(this._updateStats, 1000);
     }
 
@@ -94,7 +100,7 @@ class SpeakerStats extends Component<*, *> {
 
         return (
             <Dialog
-                cancelTitleKey = { 'dialog.close' }
+                cancelKey = { 'dialog.close' }
                 submitDisabled = { true }
                 titleKey = 'speakerStats.speakerStats'>
                 <div className = 'speaker-stats'>

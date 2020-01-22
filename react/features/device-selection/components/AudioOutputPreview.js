@@ -1,33 +1,35 @@
-import PropTypes from 'prop-types';
+/* @flow */
+
 import React, { Component } from 'react';
 
-import { translate } from '../../base/i18n';
-import { Audio } from '../../base/media';
+import { translate } from '../../base/i18n/functions';
+import Audio from '../../base/media/components/Audio';
 
 const TEST_SOUND_PATH = 'sounds/ring.wav';
+
+/**
+ * The type of the React {@code Component} props of {@link AudioOutputPreview}.
+ */
+type Props = {
+
+    /**
+     * The device id of the audio output device to use.
+     */
+    deviceId: string,
+
+    /**
+     * Invoked to obtain translated strings.
+     */
+    t: Function
+};
 
 /**
  * React component for playing a test sound through a specified audio device.
  *
  * @extends Component
  */
-class AudioOutputPreview extends Component {
-    /**
-     * AudioOutputPreview component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The device id of the audio output device to use.
-         */
-        deviceId: PropTypes.string,
-
-        /**
-         * Invoked to obtain translated strings.
-         */
-        t: PropTypes.func
-    };
+class AudioOutputPreview extends Component<Props> {
+    _audioElement: ?Object;
 
     /**
      * Initializes a new AudioOutputPreview instance.
@@ -35,24 +37,13 @@ class AudioOutputPreview extends Component {
      * @param {Object} props - The read-only React Component props with which
      * the new instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         this._audioElement = null;
 
+        this._audioElementReady = this._audioElementReady.bind(this);
         this._onClick = this._onClick.bind(this);
-        this._setAudioElement = this._setAudioElement.bind(this);
-    }
-
-    /**
-     * Sets the target output device on the component's audio element after
-     * initial render.
-     *
-     * @inheritdoc
-     * @returns {void}
-     */
-    componentDidMount() {
-        this._setAudioSink();
     }
 
     /**
@@ -79,22 +70,13 @@ class AudioOutputPreview extends Component {
                     { this.props.t('deviceSelection.testAudio') }
                 </a>
                 <Audio
-                    setRef = { this._setAudioElement }
+                    setRef = { this._audioElementReady }
                     src = { TEST_SOUND_PATH } />
             </div>
         );
     }
 
-    /**
-     * Plays a test sound.
-     *
-     * @private
-     * @returns {void}
-     */
-    _onClick() {
-        this._audioElement
-        && this._audioElement.play();
-    }
+    _audioElementReady: (Object) => void;
 
     /**
      * Sets the instance variable for the component's audio element so it can be
@@ -104,8 +86,23 @@ class AudioOutputPreview extends Component {
      * @private
      * @returns {void}
      */
-    _setAudioElement(element) {
+    _audioElementReady(element: Object) {
         this._audioElement = element;
+
+        this._setAudioSink();
+    }
+
+    _onClick: () => void;
+
+    /**
+     * Plays a test sound.
+     *
+     * @private
+     * @returns {void}
+     */
+    _onClick() {
+        this._audioElement
+            && this._audioElement.play();
     }
 
     /**
@@ -116,7 +113,8 @@ class AudioOutputPreview extends Component {
      */
     _setAudioSink() {
         this._audioElement
-        && this._audioElement.setSinkId(this.props.deviceId);
+            && this.props.deviceId
+            && this._audioElement.setSinkId(this.props.deviceId);
     }
 }
 

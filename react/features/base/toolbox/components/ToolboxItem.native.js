@@ -3,7 +3,7 @@
 import React from 'react';
 import { Text, TouchableHighlight, View } from 'react-native';
 
-import { Icon } from '../../../base/font-icons';
+import { Icon } from '../../icons';
 
 import AbstractToolboxItem from './AbstractToolboxItem';
 import type { Props } from './AbstractToolboxItem';
@@ -12,19 +12,6 @@ import type { Props } from './AbstractToolboxItem';
  * Native implementation of {@code AbstractToolboxItem}.
  */
 export default class ToolboxItem extends AbstractToolboxItem<Props> {
-    /**
-     * Transform the given (web) icon name into a name that works with
-     * {@code Icon}.
-     *
-     * @private
-     * @returns {string}
-     */
-    _getIconName() {
-        const { iconName } = this.props;
-
-        return iconName.replace('icon-', '').split(' ')[0];
-    }
-
     /**
      * Renders the {@code Icon} part of this {@code ToolboxItem}.
      *
@@ -36,7 +23,7 @@ export default class ToolboxItem extends AbstractToolboxItem<Props> {
 
         return (
             <Icon
-                name = { this._getIconName() }
+                src = { this.props.icon }
                 style = { styles && styles.iconStyle } />
         );
     }
@@ -67,7 +54,7 @@ export default class ToolboxItem extends AbstractToolboxItem<Props> {
             // XXX TouchableHighlight requires 1 child. If there's a need to
             // show both the icon and the label, then these two need to be
             // wrapped in a View.
-            children = ( // eslint-disable-line no-extra-parens
+            children = (
                 <View style = { style }>
                     { children }
                     <Text style = { styles && styles.labelStyle }>

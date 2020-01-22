@@ -1,12 +1,12 @@
 // @flow
 
 import React, { Component } from 'react';
-import { Platform } from 'react-native';
-import { connect } from 'react-redux';
 
 import { translate } from '../../base/i18n';
+import { IconEventNote, IconRestore } from '../../base/icons';
 import { PagedList } from '../../base/react';
-import { MeetingList } from '../../calendar-sync';
+import { connect } from '../../base/redux';
+import { CalendarList, isCalendarEnabled } from '../../calendar-sync';
 import { RecentList } from '../../recent-list';
 
 import { setWelcomePageListsDefaultPage } from '../actions';
@@ -15,6 +15,11 @@ import { setWelcomePageListsDefaultPage } from '../actions';
  * The type of the React {@code Component} props of {@link WelcomePageLists}.
  */
 type Props = {
+
+    /**
+     * Whether the calendar functionality is enabled or not.
+     */
+    _calendarEnabled: boolean,
 
     /**
      * The stored default page index.
@@ -38,32 +43,9 @@ type Props = {
 };
 
 /**
- * Icon to be used for the calendar page on iOS.
- */
-const IOS_CALENDAR_ICON = require('../../../../images/calendar.png');
-
-/**
- * Icon to be used for the recent list page on iOS.
- */
-const IOS_RECENT_LIST_ICON = require('../../../../images/history.png');
-
-/**
  * Implements the lists displayed on the mobile welcome screen.
  */
 class WelcomePageLists extends Component<Props> {
-    /**
-     * The pages to be rendered.
-     *
-     * Note: An element's  {@code component} may be {@code undefined} if a
-     * feature (such as Calendar) is disabled, and that means that the page must
-     * not be rendered.
-     */
-    pages: Array<{
-        component: ?Object,
-        icon: string | number,
-        title: string
-    }>;
-
     /**
      * Initializes a new {@code WelcomePageLists} instance.
      *
@@ -71,22 +53,6 @@ class WelcomePageLists extends Component<Props> {
      */
     constructor(props) {
         super(props);
-
-        const { t } = props;
-        const android = Platform.OS === 'android';
-
-        this.pages = [
-            {
-                component: RecentList,
-                icon: android ? 'restore' : IOS_RECENT_LIST_ICON,
-                title: t('welcomepage.recentList')
-            },
-            {
-                component: MeetingList,
-                icon: android ? 'event_note' : IOS_CALENDAR_ICON,
-                title: t('welcomepage.calendar')
-            }
-        ];
 
         // Bind event handlers so they are only bound once per instance.
         this._onSelectPage = this._onSelectPage.bind(this);
@@ -98,10 +64,28 @@ class WelcomePageLists extends Component<Props> {
      * @inheritdoc
      */
     render() {
-        const { _defaultPage } = this.props;
+        const { _calendarEnabled, _defaultPage, t } = this.props;
 
         if (typeof _defaultPage === 'undefined') {
             return null;
+        }
+
+        const pages = [
+            {
+                component: RecentList,
+                icon: IconRestore,
+                title: t('welcomepage.recentList')
+            }
+        ];
+
+        if (_calendarEnabled) {
+            pages.push(
+                {
+                    component: CalendarList,
+                    icon: IconEventNote,
+                    title: t('welcomepage.calendar')
+                }
+            );
         }
 
         return (
@@ -109,7 +93,7 @@ class WelcomePageLists extends Component<Props> {
                 defaultPage = { _defaultPage }
                 disabled = { this.props.disabled }
                 onSelectPage = { this._onSelectPage }
-                pages = { this.pages } />
+                pages = { pages } />
         );
     }
 
@@ -134,6 +118,7 @@ class WelcomePageLists extends Component<Props> {
  * @param {Object} state - The redux state.
  * @protected
  * @returns {{
+ *     _calendarEnabled: boolean,
  *     _defaultPage: number
  * }}
  */
@@ -147,6 +132,7 @@ function _mapStateToProps(state: Object) {
     }
 
     return {
+        _calendarEnabled: isCalendarEnabled(state),
         _defaultPage: defaultPage
     };
 }

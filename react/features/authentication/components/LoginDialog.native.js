@@ -1,15 +1,97 @@
-import PropTypes from 'prop-types';
+/* @flow */
+
 import React, { Component } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { connect as reduxConnect } from 'react-redux';
+import type { Dispatch } from 'redux';
 
-import { connect, toJid } from '../../base/connection';
-import { Dialog } from '../../base/dialog';
+import { ColorSchemeRegistry } from '../../base/color-scheme';
+import { toJid } from '../../base/connection';
+import { connect } from '../../base/connection/actions.native';
+import {
+    CustomSubmitDialog,
+    FIELD_UNDERLINE,
+    PLACEHOLDER_COLOR,
+    _abstractMapStateToProps,
+    inputDialog as inputDialogStyle
+} from '../../base/dialog';
 import { translate } from '../../base/i18n';
 import { JitsiConnectionErrors } from '../../base/lib-jitsi-meet';
+import type { StyleType } from '../../base/styles';
 
 import { authenticateAndUpgradeRole, cancelLogin } from '../actions';
-import styles from './styles';
+
+// Register styles.
+import './styles';
+
+/**
+ * The type of the React {@link Component} props of {@link LoginDialog}.
+ */
+type Props = {
+
+    /**
+     * {@link JitsiConference} that needs authentication - will hold a valid
+     * value in XMPP login + guest access mode.
+     */
+    _conference: Object,
+
+    /**
+     * The server hosts specified in the global config.
+     */
+    _configHosts: Object,
+
+    /**
+     * Indicates if the dialog should display "connecting" status message.
+     */
+    _connecting: boolean,
+
+    /**
+     * The color-schemed stylesheet of the base/dialog feature.
+     */
+    _dialogStyles: StyleType,
+
+    /**
+     * The error which occurred during login/authentication.
+     */
+    _error: Object,
+
+    /**
+     * The progress in the floating range between 0 and 1 of the authenticating
+     * and upgrading the role of the local participant/user.
+     */
+    _progress: number,
+
+    /**
+     * The color-schemed stylesheet of this feature.
+     */
+    _styles: StyleType,
+
+    /**
+     * Redux store dispatch method.
+     */
+    dispatch: Dispatch<any>,
+
+    /**
+     * Invoked to obtain translated strings.
+     */
+    t: Function
+};
+
+/**
+ * The type of the React {@link Component} state of {@link LoginDialog}.
+ */
+type State = {
+
+    /**
+     * The user entered password for the conference.
+     */
+    password: string,
+
+    /**
+     * The user entered local participant name.
+     */
+    username: string
+};
 
 /**
  * Dialog asks user for username and password.
@@ -38,58 +120,14 @@ import styles from './styles';
  * See {@link https://github.com/jitsi/jicofo#secure-domain} for a description
  * of the configuration parameters.
  */
-class LoginDialog extends Component {
-    /**
-     * LoginDialog component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * {@link JitsiConference} that needs authentication - will hold a valid
-         * value in XMPP login + guest access mode.
-         */
-        _conference: PropTypes.object,
-
-        /**
-         *
-         */
-        _configHosts: PropTypes.object,
-
-        /**
-         * Indicates if the dialog should display "connecting" status message.
-         */
-        _connecting: PropTypes.bool,
-
-        /**
-         * The error which occurred during login/authentication.
-         */
-        _error: PropTypes.object,
-
-        /**
-         * The progress in the floating range between 0 and 1 of the
-         * authenticating and upgrading the role of the local participant/user.
-         */
-        _progress: PropTypes.number,
-
-        /**
-         * Redux store dispatch method.
-         */
-        dispatch: PropTypes.func,
-
-        /**
-         * Invoked to obtain translated strings.
-         */
-        t: PropTypes.func
-    };
-
+class LoginDialog extends Component<Props, State> {
     /**
      * Initializes a new LoginDialog instance.
      *
      * @param {Object} props - The read-only properties with which the new
      * instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         this.state = {
@@ -113,13 +151,61 @@ class LoginDialog extends Component {
     render() {
         const {
             _connecting: connecting,
+            _dialogStyles,
+            _styles: styles,
+            t
+        } = this.props;
+
+        return (
+            <CustomSubmitDialog
+                okDisabled = { connecting }
+                onCancel = { this._onCancel }
+                onSubmit = { this._onLogin }>
+                <View style = { styles.loginDialog }>
+                    <TextInput
+                        autoCapitalize = { 'none' }
+                        autoCorrect = { false }
+                        onChangeText = { this._onUsernameChange }
+                        placeholder = { 'user@domain.com' }
+                        placeholderTextColor = { PLACEHOLDER_COLOR }
+                        style = { _dialogStyles.field }
+                        underlineColorAndroid = { FIELD_UNDERLINE }
+                        value = { this.state.username } />
+                    <TextInput
+                        onChangeText = { this._onPasswordChange }
+                        placeholder = { t('dialog.userPassword') }
+                        placeholderTextColor = { PLACEHOLDER_COLOR }
+                        secureTextEntry = { true }
+                        style = { [
+                            _dialogStyles.field,
+                            inputDialogStyle.bottomField
+                        ] }
+                        underlineColorAndroid = { FIELD_UNDERLINE }
+                        value = { this.state.password } />
+                    { this._renderMessage() }
+                </View>
+            </CustomSubmitDialog>
+        );
+    }
+
+    /**
+     * Renders an optional message, if applicable.
+     *
+     * @returns {ReactElement}
+     * @private
+     */
+    _renderMessage() {
+        const {
+            _connecting: connecting,
             _error: error,
             _progress: progress,
+            _styles: styles,
             t
         } = this.props;
 
         let messageKey;
-        let messageOptions;
+        let messageIsError = false;
+        const messageOptions = {};
 
         if (progress && progress < 1) {
             messageKey = 'connection.FETCH_SESSION_ID';
@@ -139,47 +225,35 @@ class LoginDialog extends Component {
                                 this.props._configHosts)
                         && credentials.password === this.state.password) {
                     messageKey = 'dialog.incorrectPassword';
+                    messageIsError = true;
                 }
             } else if (name) {
                 messageKey = 'dialog.connectErrorWithMsg';
-                messageOptions || (messageOptions = {});
                 messageOptions.msg = `${name} ${error.message}`;
+                messageIsError = true;
             }
+        } else if (connecting) {
+            messageKey = 'connection.CONNECTING';
         }
 
-        return (
-            <Dialog
-                okDisabled = { connecting }
-                onCancel = { this._onCancel }
-                onSubmit = { this._onLogin }
-                titleKey = 'dialog.passwordRequired'>
-                <View style = { styles.loginDialog }>
-                    <TextInput
-                        autoCapitalize = { 'none' }
-                        autoCorrect = { false }
-                        onChangeText = { this._onUsernameChange }
-                        placeholder = { 'user@domain.com' }
-                        style = { styles.dialogTextInput }
-                        value = { this.state.username } />
-                    <TextInput
-                        onChangeText = { this._onPasswordChange }
-                        placeholder = { t('dialog.userPassword') }
-                        secureTextEntry = { true }
-                        style = { styles.dialogTextInput }
-                        value = { this.state.password } />
-                    <Text style = { styles.dialogText }>
-                        {
-                            messageKey
-                                ? t(messageKey, messageOptions || {})
-                                : connecting
-                                    ? t('connection.CONNECTING')
-                                    : ''
-                        }
-                    </Text>
-                </View>
-            </Dialog>
-        );
+        if (messageKey) {
+            const message = t(messageKey, messageOptions);
+            const messageStyles = [
+                styles.dialogText,
+                messageIsError ? styles.errorMessage : styles.progressMessage
+            ];
+
+            return (
+                <Text style = { messageStyles }>
+                    { message }
+                </Text>
+            );
+        }
+
+        return null;
     }
+
+    _onUsernameChange: (string) => void;
 
     /**
      * Called when user edits the username.
@@ -194,6 +268,8 @@ class LoginDialog extends Component {
         });
     }
 
+    _onPasswordChange: (string) => void;
+
     /**
      * Called when user edits the password.
      *
@@ -207,6 +283,8 @@ class LoginDialog extends Component {
         });
     }
 
+    _onCancel: () => void;
+
     /**
      * Notifies this LoginDialog that it has been dismissed by cancel.
      *
@@ -216,6 +294,8 @@ class LoginDialog extends Component {
     _onCancel() {
         this.props.dispatch(cancelLogin());
     }
+
+    _onLogin: () => void;
 
     /**
      * Notifies this LoginDialog that the login button (OK) has been pressed by
@@ -248,13 +328,7 @@ class LoginDialog extends Component {
  *
  * @param {Object} state - The Redux state.
  * @private
- * @returns {{
- *     _conference: JitsiConference,
- *     _configHosts: Object,
- *     _connecting: boolean,
- *     _error: Object,
- *     _progress: number
- * }}
+ * @returns {Props}
  */
 function _mapStateToProps(state) {
     const {
@@ -270,11 +344,13 @@ function _mapStateToProps(state) {
     } = state['features/base/connection'];
 
     return {
+        ..._abstractMapStateToProps(state),
         _conference: authRequired,
         _configHosts: configHosts,
         _connecting: Boolean(connecting) || Boolean(thenableWithCancel),
         _error: connectionError || authenticateAndUpgradeRoleError,
-        _progress: progress
+        _progress: progress,
+        _styles: ColorSchemeRegistry.get(state, 'LoginDialog')
     };
 }
 

@@ -5,18 +5,17 @@ import ReactDOM from 'react-dom';
 import { I18nextProvider } from 'react-i18next';
 import { Provider } from 'react-redux';
 
+import { Avatar } from '../../../react/features/base/avatar';
 import { i18next } from '../../../react/features/base/i18n';
 import { PresenceLabel } from '../../../react/features/presence-status';
 /* eslint-enable no-unused-vars */
 
 const logger = require('jitsi-meet-logger').getLogger(__filename);
 
+import { VIDEO_TYPE } from '../../../react/features/base/media';
 import {
     JitsiParticipantConnectionStatus
 } from '../../../react/features/base/lib-jitsi-meet';
-import {
-    getAvatarURLByParticipantId
-} from '../../../react/features/base/participants';
 import {
     updateKnownLargeVideoResolution
 } from '../../../react/features/large-video';
@@ -95,6 +94,9 @@ export default class LargeVideoManager {
             = this._onVideoResolutionUpdate.bind(this);
 
         this.videoContainer.addResizeListener(this._onVideoResolutionUpdate);
+
+        this._dominantSpeakerAvatarContainer
+            = document.getElementById('dominantSpeakerAvatarContainer');
     }
 
     /**
@@ -108,6 +110,10 @@ export default class LargeVideoManager {
             this._onVideoResolutionUpdate);
 
         this.removePresenceLabel();
+
+        ReactDOM.unmountComponentAtNode(this._dominantSpeakerAvatarContainer);
+
+        this.$container.css({ display: 'none' });
     }
 
     /**
@@ -160,6 +166,13 @@ export default class LargeVideoManager {
     get id() {
         const container = this.getCurrentContainer();
 
+        // If a user switch for large video is in progress then provide what
+        // will be the end result of the update.
+        if (this.updateInProcess
+            && this.newStreamData
+            && this.newStreamData.id !== container.id) {
+            return this.newStreamData.id;
+        }
 
         return container.id;
     }
@@ -176,8 +189,8 @@ export default class LargeVideoManager {
 
         // Include hide()/fadeOut only if we're switching between users
         // eslint-disable-next-line eqeqeq
-        const isUserSwitch = this.newStreamData.id != this.id;
         const container = this.getCurrentContainer();
+        const isUserSwitch = this.newStreamData.id !== container.id;
         const preUpdate = isUserSwitch ? container.hide() : Promise.resolve();
 
         preUpdate.then(() => {
@@ -199,8 +212,7 @@ export default class LargeVideoManager {
             container.setStream(id, stream, videoType);
 
             // change the avatar url on large
-            this.updateAvatar(
-                getAvatarURLByParticipantId(APP.store.getState(), id));
+            this.updateAvatar();
 
             // If the user's connection is disrupted then the avatar will be
             // displayed in case we have no video image cached. That is if
@@ -221,7 +233,7 @@ export default class LargeVideoManager {
 
             const showAvatar
                 = isVideoContainer
-                    && (APP.conference.isAudioOnly() || !isVideoRenderable);
+                    && ((APP.conference.isAudioOnly() && videoType !== VIDEO_TYPE.DESKTOP) || !isVideoRenderable);
 
             let promise;
 
@@ -391,8 +403,16 @@ export default class LargeVideoManager {
     /**
      * Updates the src of the dominant speaker avatar
      */
-    updateAvatar(avatarUrl) {
-        $('#dominantSpeakerAvatar').attr('src', avatarUrl);
+    updateAvatar() {
+        ReactDOM.render(
+            <Provider store = { APP.store }>
+                <Avatar
+                    id = "dominantSpeakerAvatar"
+                    participantId = { this.id }
+                    size = { 200 } />
+            </Provider>,
+            this._dominantSpeakerAvatarContainer
+        );
     }
 
     /**
@@ -663,8 +683,8 @@ export default class LargeVideoManager {
     }
 
     /**
-     * Dispatches an action to update the known resolution state of the
-     * large video and adjusts container sizes when the resolution changes.
+     * Dispatches an action to update the known resolution state of the large video and adjusts container sizes when the
+     * resolution changes.
      *
      * @private
      * @returns {void}
@@ -677,7 +697,7 @@ export default class LargeVideoManager {
             APP.store.dispatch(updateKnownLargeVideoResolution(height));
         }
 
-        const currentAspectRatio = width / height;
+        const currentAspectRatio = height === 0 ? 0 : width / height;
 
         if (this._videoAspectRatio !== currentAspectRatio) {
             this._videoAspectRatio = currentAspectRatio;

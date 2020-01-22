@@ -35,6 +35,7 @@ xcuserdata
 DerivedData
 *.hmap
 *.ipa
+*.dSYM.zip
 *.xcuserstate
 project.xcworkspace
 
@@ -60,19 +61,26 @@ buck-out/
 
 # fastlane
 #
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
-
 */fastlane/report.xml
 */fastlane/Preview.html
-*/fastlane/screenshots
 
-# Bundle artifact
+# Build artifacts
 *.jsbundle
+*.framework
+android/app/debug
+android/app/release
 
 # precommit-hook
 .jshintignore
 .jshintrc
+
+# VSCode files
+android/.project
+android/.settings/org.eclipse.buildship.core.prefs
+
+# Secrets
+android/app/dropbox.key
+android/app/google-services.json
+ios/app/dropbox.key
+ios/app/GoogleService-Info.plist
 

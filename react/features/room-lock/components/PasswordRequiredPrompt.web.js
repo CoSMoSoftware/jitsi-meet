@@ -1,34 +1,55 @@
 // @flow
-import PropTypes from 'prop-types';
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+
 import { FieldTextStateless as TextField } from '@atlaskit/field-text';
+import React, { Component } from 'react';
+import type { Dispatch } from 'redux';
 
 import { setPassword } from '../../base/conference';
 import { Dialog } from '../../base/dialog';
 import { translate } from '../../base/i18n';
+import { connect } from '../../base/redux';
+
+import { _cancelPasswordRequiredPrompt } from '../actions';
+
+/**
+ * The type of the React {@code Component} props of
+ * {@link PasswordRequiredPrompt}.
+ */
+type Props = {
+
+    /**
+     * The JitsiConference which requires a password.
+     */
+    conference: Object,
+
+    /**
+     * The redux store's {@code dispatch} function.
+     */
+    dispatch: Dispatch<any>,
+
+    /**
+     * The translate function.
+     */
+    t: Function
+};
+
+/**
+ * The type of the React {@code Component} state of
+ * {@link PasswordRequiredPrompt}.
+ */
+type State = {
+
+    /**
+     * The password entered by the local participant.
+     */
+    password: string
+}
 
 /**
  * Implements a React Component which prompts the user when a password is
  * required to join a conference.
  */
-class PasswordRequiredPrompt extends Component<*, *> {
-    /**
-     * PasswordRequiredPrompt component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The JitsiConference which requires a password.
-         *
-         * @type {JitsiConference}
-         */
-        conference: PropTypes.object,
-        dispatch: PropTypes.func,
-        t: PropTypes.func
-    };
-
+class PasswordRequiredPrompt extends Component<Props, State> {
     state = {
         password: ''
     };
@@ -39,11 +60,12 @@ class PasswordRequiredPrompt extends Component<*, *> {
      * @param {Object} props - The read-only properties with which the new
      * instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         // Bind event handlers so they are only bound once per instance.
         this._onPasswordChanged = this._onPasswordChanged.bind(this);
+        this._onCancel = this._onCancel.bind(this);
         this._onSubmit = this._onSubmit.bind(this);
     }
 
@@ -56,7 +78,9 @@ class PasswordRequiredPrompt extends Component<*, *> {
     render() {
         return (
             <Dialog
-                isModal = { true }
+                disableBlanketClickDismiss = { true }
+                isModal = { false }
+                onCancel = { this._onCancel }
                 onSubmit = { this._onSubmit }
                 titleKey = 'dialog.passwordRequired'
                 width = 'small'>
@@ -100,6 +124,22 @@ class PasswordRequiredPrompt extends Component<*, *> {
         this.setState({
             password: value
         });
+    }
+
+    _onCancel: () => boolean;
+
+    /**
+     * Dispatches action to cancel and dismiss this dialog.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    _onCancel() {
+
+        this.props.dispatch(
+            _cancelPasswordRequiredPrompt(this.props.conference));
+
+        return true;
     }
 
     _onSubmit: () => boolean;

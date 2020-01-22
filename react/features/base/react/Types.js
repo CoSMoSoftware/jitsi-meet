@@ -8,9 +8,24 @@ import type { ComponentType, Element } from 'react';
 export type Item = {
 
     /**
+     * The avatar URL or icon name.
+     */
+    avatar: ?string,
+
+    /**
      * the color base of the avatar
      */
     colorBase: string,
+
+    /**
+     * An optional react element to append to the end of the Item.
+     */
+    elementAfter?: ?React$Node,
+
+    /**
+     * Unique ID of the item.
+     */
+    id: Object | string,
 
     /**
      * Item title

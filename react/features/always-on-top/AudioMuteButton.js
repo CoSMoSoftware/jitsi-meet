@@ -1,10 +1,11 @@
 // @flow
 
-import { AbstractAudioMuteButton } from '../base/toolbox';
-import type { AbstractButtonProps as Props } from '../base/toolbox';
+// We need to reference these files directly to avoid loading things that are not available
+// in this environment (e.g. JitsiMeetJS or interfaceConfig)
+import AbstractAudioMuteButton from '../base/toolbox/components/AbstractAudioMuteButton';
+import type { Props } from '../base/toolbox/components/AbstractButton';
 
 const { api } = window.alwaysOnTop;
-const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * The type of the React {@code Component} state of {@link AudioMuteButton}.
@@ -69,7 +70,7 @@ export default class AudioMuteButton
                     audioAvailable,
                     audioMuted
                 }))
-            .catch(logger.error);
+            .catch(console.error);
     }
 
     /**

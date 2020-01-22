@@ -1,5 +1,6 @@
 /*
- * Copyright @ 2017-present Atlassian Pty Ltd
+ * Copyright @ 2018-present 8x8, Inc.
+ * Copyright @ 2017-2018 Atlassian Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,35 +16,107 @@
  */
 
 #import "AppDelegate.h"
+#import "FIRUtilities.h"
+#import "Types.h"
 
-#import <JitsiMeet/JitsiMeet.h>
+@import Crashlytics;
+@import Fabric;
+@import Firebase;
+@import JitsiMeet;
+
 
 @implementation AppDelegate
 
 -             (BOOL)application:(UIApplication *)application
   didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    return [JitsiMeetView application:application
-        didFinishLaunchingWithOptions:launchOptions];
+
+    // Initialize Crashlytics and Firebase if a valid GoogleService-Info.plist file was provided.
+    if ([FIRUtilities appContainsRealServiceInfoPlist]) {
+        NSLog(@"Enablign Crashlytics and Firebase");
+        [FIRApp configure];
+        [Fabric with:@[[Crashlytics class]]];
+    }
+
+    JitsiMeet *jitsiMeet = [JitsiMeet sharedInstance];
+
+    jitsiMeet.conferenceActivityType = JitsiMeetConferenceActivityType;
+    jitsiMeet.customUrlScheme = @"org.jitsi.meet";
+    jitsiMeet.universalLinkDomains = @[@"meet.jit.si", @"alpha.jitsi.net", @"beta.meet.jit.si"];
+
+    jitsiMeet.defaultConferenceOptions = [JitsiMeetConferenceOptions fromBuilder:^(JitsiMeetConferenceOptionsBuilder *builder) {
+        builder.serverURL = [NSURL URLWithString:@"https://meet.jit.si"];
+        builder.welcomePageEnabled = YES;
+
+        // Apple rejected our app because they claim requiring a
+        // Dropbox account for recording is not acceptable.
+#if DEBUG
+        [builder setFeatureFlag:@"ios.recording.enabled" withBoolean:YES];
+#endif
+    }];
+
+    [jitsiMeet application:application didFinishLaunchingWithOptions:launchOptions];
+
+    return YES;
 }
 
 #pragma mark Linking delegate methods
 
 -    (BOOL)application:(UIApplication *)application
   continueUserActivity:(NSUserActivity *)userActivity
-    restorationHandler:(void (^)(NSArray *restorableObjects))restorationHandler {
-    return [JitsiMeetView application:application
-                 continueUserActivity:userActivity
-                   restorationHandler:restorationHandler];
+    restorationHandler:(void (^)(NSArray<id<UIUserActivityRestoring>> *restorableObjects))restorationHandler {
+
+    if ([FIRUtilities appContainsRealServiceInfoPlist]) {
+        // 1. Attempt to handle Universal Links through Firebase in order to support
+        //    its Dynamic Links (which we utilize for the purposes of deferred deep
+        //    linking).
+        BOOL handled
+          = [[FIRDynamicLinks dynamicLinks]
+                handleUniversalLink:userActivity.webpageURL
+                         completion:^(FIRDynamicLink * _Nullable dynamicLink, NSError * _Nullable error) {
+           NSURL *firebaseUrl = [FIRUtilities extractURL:dynamicLink];
+           if (firebaseUrl != nil) {
+             userActivity.webpageURL = firebaseUrl;
+             [[JitsiMeet sharedInstance] application:application
+                                continueUserActivity:userActivity
+                                  restorationHandler:restorationHandler];
+           }
+        }];
+
+        if (handled) {
+          return handled;
+        }
+    }
+
+    // 2. Default to plain old, non-Firebase-assisted Universal Links.
+    return [[JitsiMeet sharedInstance] application:application
+                              continueUserActivity:userActivity
+                                restorationHandler:restorationHandler];
 }
 
-- (BOOL)application:(UIApplication *)application
+- (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
-  sourceApplication:(NSString *)sourceApplication
-         annotation:(id)annotation {
-    return [JitsiMeetView application:application
-                              openURL:url
-                    sourceApplication:sourceApplication
-                           annotation:annotation];
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
+
+    // This shows up during a reload in development, skip it.
+    // https://github.com/firebase/firebase-ios-sdk/issues/233
+    if ([[url absoluteString] containsString:@"google/link/?dismiss=1&is_weak_match=1"]) {
+        return NO;
+    }
+
+    NSURL *openUrl = url;
+
+    if ([FIRUtilities appContainsRealServiceInfoPlist]) {
+        // Process Firebase Dynamic Links
+        FIRDynamicLink *dynamicLink = [[FIRDynamicLinks dynamicLinks] dynamicLinkFromCustomSchemeURL:url];
+        NSURL *firebaseUrl = [FIRUtilities extractURL:dynamicLink];
+        if (firebaseUrl != nil) {
+            openUrl = firebaseUrl;
+        }
+    }
+
+    return [[JitsiMeet sharedInstance] application:app
+                                           openURL:openUrl
+                                           options:options];
 }
 
 @end

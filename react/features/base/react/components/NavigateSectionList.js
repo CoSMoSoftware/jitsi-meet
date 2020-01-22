@@ -30,6 +30,12 @@ type Props = {
     onRefresh: Function,
 
     /**
+     * Function to be invoked when a secondary action is performed on an item.
+     * The item's ID is passed.
+     */
+    onSecondaryAction: Function,
+
+    /**
      * Function to override the rendered default empty list component.
      */
     renderListEmptyComponent: Function,
@@ -37,7 +43,13 @@ type Props = {
     /**
      * An array of sections
      */
-    sections: Array<Section>
+    sections: Array<Section>,
+
+    /**
+     * Optional array of on-slide actions this list should support. For details
+     * see https://github.com/dancormier/react-native-swipeout.
+     */
+    slideActions?: Array<Object>
 };
 
 /**
@@ -79,15 +91,15 @@ class NavigateSectionList extends Component<Props> {
     }
 
     /**
-     * Implements React's Component.render.
-     * Note: we don't use the refreshing value yet, because refreshing of these
+     * Implements React's {@code Component.render}.
+     * Note: We don't use the refreshing value yet, because refreshing of these
      * lists is super quick, no need to complicate the code - yet.
      *
      * @inheritdoc
      */
     render() {
         const {
-            renderListEmptyComponent = this._renderListEmptyComponent,
+            renderListEmptyComponent = this._renderListEmptyComponent(),
             sections
         } = this.props;
 
@@ -128,11 +140,13 @@ class NavigateSectionList extends Component<Props> {
      * @returns {Function}
      */
     _onPress(url) {
-        return () => {
-            const { disabled, onPress } = this.props;
+        const { disabled, onPress } = this.props;
 
-            !disabled && url && typeof onPress === 'function' && onPress(url);
-        };
+        if (!disabled && url && typeof onPress === 'function') {
+            return () => onPress(url);
+        }
+
+        return null;
     }
 
     _onRefresh: () => void;
@@ -151,6 +165,23 @@ class NavigateSectionList extends Component<Props> {
         }
     }
 
+    _onSecondaryAction: Object => Function;
+
+    /**
+     * Returns a function that is used in the secondaryAction callback of the
+     * items.
+     *
+     * @param {string} id - The id of the item that secondary action was
+     * performed on.
+     * @private
+     * @returns {Function}
+     */
+    _onSecondaryAction(id) {
+        return () => {
+            this.props.onSecondaryAction(id);
+        };
+    }
+
     _renderItem: Object => Object;
 
     /**
@@ -163,7 +194,7 @@ class NavigateSectionList extends Component<Props> {
      */
     _renderItem(listItem, key: string = '') {
         const { item } = listItem;
-        const { url } = item;
+        const { id, url } = item;
 
         // XXX The value of title cannot be undefined; otherwise, react-native
         // will throw a TypeError: Cannot read property of undefined. While it's
@@ -178,7 +209,10 @@ class NavigateSectionList extends Component<Props> {
             <NavigateSectionListItem
                 item = { item }
                 key = { key }
-                onPress = { this._onPress(url) } />
+                onPress = { url ? this._onPress(url) : undefined }
+                secondaryAction = {
+                    url ? undefined : this._onSecondaryAction(id) }
+                slideActions = { this.props.slideActions } />
         );
     }
 

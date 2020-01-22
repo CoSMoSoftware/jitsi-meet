@@ -2,17 +2,19 @@
 
 import React from 'react';
 
-import { AbstractDialogTab } from '../../base/dialog';
-import type { Props as AbstractDialogTabProps } from '../../base/dialog';
-import { translate } from '../../base/i18n';
-import { createLocalTrack } from '../../base/lib-jitsi-meet';
+import AbstractDialogTab, {
+    type Props as AbstractDialogTabProps
+} from '../../base/dialog/components/web/AbstractDialogTab';
+import { translate } from '../../base/i18n/functions';
+import JitsiMeetJS from '../../base/lib-jitsi-meet/_';
+import { createLocalTrack } from '../../base/lib-jitsi-meet/functions';
+
+import logger from '../logger';
 
 import AudioInputPreview from './AudioInputPreview';
 import AudioOutputPreview from './AudioOutputPreview';
 import DeviceSelector from './DeviceSelector';
 import VideoInputPreview from './VideoInputPreview';
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * The type of the React {@code Component} props of {@link DeviceSelection}.
@@ -39,18 +41,6 @@ export type Props = {
      * will display as disabled.
      */
     disableDeviceChange: boolean,
-
-    /**
-     * Function that checks whether or not a new audio input source can be
-     * selected.
-     */
-    hasAudioPermission: Function,
-
-    /**
-     * Function that checks whether or not a new video input sources can be
-     * selected.
-     */
-    hasVideoPermission: Function,
 
     /**
      * If true, the audio meter will not display. Necessary for browsers or
@@ -99,6 +89,16 @@ export type Props = {
 type State = {
 
     /**
+     * Whether or not the audio permission was granted.
+     */
+    hasAudioPermission: boolean,
+
+    /**
+     * Whether or not the audio permission was granted.
+     */
+    hasVideoPermission: boolean,
+
+    /**
      * The JitsiTrack to use for previewing audio input.
      */
     previewAudioTrack: ?Object,
@@ -120,6 +120,18 @@ type State = {
  * @extends Component
  */
 class DeviceSelection extends AbstractDialogTab<Props, State> {
+
+    /**
+     * Whether current component is mounted or not.
+     *
+     * In component did mount we start a Promise to create tracks and
+     * set the tracks in the state, if we unmount the component in the meanwhile
+     * tracks will be created and will never been disposed (dispose tracks is
+     * in componentWillUnmount). When tracks are created and component is
+     * unmounted we dispose the tracks.
+     */
+    _unMounted: boolean;
+
     /**
      * Initializes a new DeviceSelection instance.
      *
@@ -130,10 +142,13 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
         super(props);
 
         this.state = {
+            hasAudioPermission: false,
+            hasVideoPermission: false,
             previewAudioTrack: null,
             previewVideoTrack: null,
             previewVideoTrackError: null
         };
+        this._unMounted = true;
     }
 
     /**
@@ -142,6 +157,7 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
      * @inheritdoc
      */
     componentDidMount() {
+        this._unMounted = false;
         Promise.all([
             this._createAudioInputTrack(this.props.selectedAudioInputId),
             this._createVideoInputTrack(this.props.selectedVideoInputId)
@@ -151,22 +167,39 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
     }
 
     /**
-     * Updates audio input and video input previews.
+     * Checks if audio / video permissions were granted. Updates audio input and
+     * video input previews.
      *
-     * @inheritdoc
-     * @param {Object} nextProps - The read-only props which this Component will
-     * receive.
+     * @param {Object} prevProps - Previous props this component received.
+     * @param {Object} prevState - Previous state this component had.
      * @returns {void}
      */
-    componentWillReceiveProps(nextProps: Object) {
-        const { selectedAudioInputId, selectedVideoInputId } = this.props;
+    componentDidUpdate(prevProps, prevState) {
+        const { previewAudioTrack, previewVideoTrack } = prevState;
 
-        if (selectedAudioInputId !== nextProps.selectedAudioInputId) {
-            this._createAudioInputTrack(nextProps.selectedAudioInputId);
+        if ((!previewAudioTrack && this.state.previewAudioTrack)
+                || (!previewVideoTrack && this.state.previewVideoTrack)) {
+            Promise.all([
+                JitsiMeetJS.mediaDevices.isDevicePermissionGranted('audio'),
+                JitsiMeetJS.mediaDevices.isDevicePermissionGranted('video')
+            ]).then(r => {
+                const [ hasAudioPermission, hasVideoPermission ] = r;
+
+                this.setState({
+                    hasAudioPermission,
+                    hasVideoPermission
+                });
+            });
         }
 
-        if (selectedVideoInputId !== nextProps.selectedVideoInputId) {
-            this._createVideoInputTrack(nextProps.selectedVideoInputId);
+        if (prevProps.selectedAudioInputId
+            !== this.props.selectedAudioInputId) {
+            this._createAudioInputTrack(this.props.selectedAudioInputId);
+        }
+
+        if (prevProps.selectedVideoInputId
+            !== this.props.selectedVideoInputId) {
+            this._createVideoInputTrack(this.props.selectedVideoInputId);
         }
     }
 
@@ -176,6 +209,7 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
      * @inheritdoc
      */
     componentWillUnmount() {
+        this._unMounted = true;
         this._disposeAudioInputPreview();
         this._disposeVideoInputPreview();
     }
@@ -227,6 +261,12 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
         return this._disposeAudioInputPreview()
             .then(() => createLocalTrack('audio', deviceId))
             .then(jitsiLocalTrack => {
+                if (this._unMounted) {
+                    jitsiLocalTrack.dispose();
+
+                    return;
+                }
+
                 this.setState({
                     previewAudioTrack: jitsiLocalTrack
                 });
@@ -251,6 +291,12 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
             .then(jitsiLocalTrack => {
                 if (!jitsiLocalTrack) {
                     return Promise.reject();
+                }
+
+                if (this._unMounted) {
+                    jitsiLocalTrack.dispose();
+
+                    return;
                 }
 
                 this.setState({
@@ -316,22 +362,24 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
      */
     _renderSelectors() {
         const { availableDevices } = this.props;
+        const { hasAudioPermission, hasVideoPermission } = this.state;
 
         const configurations = [
             {
                 devices: availableDevices.videoInput,
-                hasPermission: this.props.hasVideoPermission(),
+                hasPermission: hasVideoPermission,
                 icon: 'icon-camera',
                 isDisabled: this.props.disableDeviceChange,
                 key: 'videoInput',
                 label: 'settings.selectCamera',
                 onSelect: selectedVideoInputId =>
                     super._onChange({ selectedVideoInputId }),
-                selectedDeviceId: this.props.selectedVideoInputId
+                selectedDeviceId: this.state.previewVideoTrack
+                    ? this.state.previewVideoTrack.getDeviceId() : null
             },
             {
                 devices: availableDevices.audioInput,
-                hasPermission: this.props.hasAudioPermission(),
+                hasPermission: hasAudioPermission,
                 icon: 'icon-microphone',
                 isDisabled: this.props.disableAudioInputChange
                     || this.props.disableDeviceChange,
@@ -339,15 +387,15 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
                 label: 'settings.selectMic',
                 onSelect: selectedAudioInputId =>
                     super._onChange({ selectedAudioInputId }),
-                selectedDeviceId: this.props.selectedAudioInputId
+                selectedDeviceId: this.state.previewAudioTrack
+                    ? this.state.previewAudioTrack.getDeviceId() : null
             }
         ];
 
         if (!this.props.hideAudioOutputSelect) {
             configurations.push({
                 devices: availableDevices.audioOutput,
-                hasPermission: this.props.hasAudioPermission()
-                    || this.props.hasVideoPermission(),
+                hasPermission: hasAudioPermission || hasVideoPermission,
                 icon: 'icon-speaker',
                 isDisabled: this.props.disableDeviceChange,
                 key: 'audioOutput',

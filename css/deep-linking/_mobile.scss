@@ -8,18 +8,19 @@
     .header {
         width: 100%;
         height: 70px;
-        background-color: #f1f2f5;
+        background-color: $deepLinkingMobileHeaderBackground;
         text-align: center;
         .logo {
             margin-top: 15px;
             margin-left: auto;
             margin-right: auto;
-            height: 40px;
+            height: $deepLinkingMobileLogoHeight;
         }
     }
 
     a {
-        text-decoration: none
+        text-decoration: none;
+        color: $deepLinkingMobileLinkColor;
     }
 
     &__body {
@@ -28,7 +29,7 @@
         max-width: 40em;
         padding: 35px 0 40px 0;
         text-align: center;
-        width: 75%;
+        width: 90%;
 
         a:active {
             text-decoration: none;
@@ -41,12 +42,14 @@
 
     &__text {
         font-weight: bolder;
+        font-size: $deepLinkingMobileTextFontSize;
+        line-height: $deepLinkingMobileTextLineHeight;
         padding: 10px 10px 0px 10px;
     }
 
     &__text,
     .deep-linking-dial-in  {
-        font-size: 1.2em;
+        font-size: 1em;
         line-height: em(29px, 21px);
         margin-bottom: 0.65em;
 
@@ -59,29 +62,73 @@
                 font-size: em(21, 18);
             }
         }
+
+        table {
+            font-size: 1em;
+        }
+
+        .dial-in-conference-id {
+            margin: $deepLinkingDialInConferenceIdMargin;
+            padding: $deepLinkingDialInConferenceIdPadding;
+            background-color: $deepLinkingDialInConferenceIdBackgroundColor;
+            border-radius: $deepLinkingDialInConferenceIdBorderRadius;
+        }
+
+        .dial-in-conference-name {
+            font-size: $deepLinkingDialInConferenceNameFontSize;
+            line-height: $deepLinkingDialInConferenceNameLineHeight;
+            margin-bottom: $deepLinkingDialInConferenceNameMarginBottom;
+            font-weight: $deepLinkingDialInConferenceNameFontWeight;
+        }
+
+        .dial-in-conference-description {
+            font-size: $deepLinkingDialInConferenceDescriptionFontSize;
+            line-height: $deepLinkingDialInConferenceDescriptionLineHeight;
+            margin-bottom: $deepLinkingDialInConferenceDescriptionMarginBottom;
+        }
+
+        .dial-in-conference-pin {
+            font-size: $deepLinkingDialInConferencePinFontSize;
+            line-height: $deepLinkingDialInConferencePinLineHeight;
+        }
+
+        .toll-free-list {
+            min-width: 80px;
+        }
+
+        .numbers-list {
+            min-width: 150px;
+        }
+
+        li.toll-free:empty:before {
+            content: '.';
+            visibility: hidden;
+        }
     }
 
     &__href {
         height: 2.2857142857142856em;
-        line-height: 2.2857142857142856em;
+        line-height: $depLinkingMobileHrefLineHeight;
         margin: 18px auto 20px;
         max-width: 300px;
         width: auto;
-        font-weight: bolder;
+        font-weight: $deepLinkingMobileHrefFontWeight;
+        font-size: $deepLinkingMobileHrefFontSize;
     }
 
     &__button {
         border: 0;
-        height: 2.2857142857142856em;
-        line-height: 2.2857142857142856em;
-        margin: 18px auto 10px;
+        height: $deepLinkingMobileButtonHeight;
+        line-height: $deepLinkingMobileButtonLineHeight;
+        margin: $deepLinkingMobileButtonMargin;
         padding: 0px 10px 0px 10px;
         max-width: 300px;
-        width: auto;
+        width: $deepLinkingMobileButtonWidth;
         @include border-radius(3px);
         background-color: $unsupportedBrowserButtonBgColor;
         color: #505F79;
-        font-weight: bold;
+        font-weight: $deepLinkingMobileButtonFontWeight;
+        font-size: $deepLinkingMobileButtonFontSize;
 
         &:active {
             background-color: $unsupportedBrowserButtonBgColor;
@@ -90,7 +137,7 @@
         &_primary {
             background-color: $primaryUnsupportedBrowserButtonBgColor;
             color: #FFFFFF;
-
+            border-radius: $primaryDeepLinkingMobileButtonBorderRadius;
             &:active {
                 background-color: $primaryUnsupportedBrowserButtonBgColor;
             }
@@ -108,6 +155,7 @@
 
         .dial-in-numbers-list {
             color: $unsupportedBrowserTextColor;
+            padding-left: 20px;
         }
 
         .dial-in-numbers-body {

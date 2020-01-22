@@ -1,6 +1,8 @@
 // @flow
 
-import { BoxModel, ColorPalette, createStyleSheet } from '../../base/styles';
+import { StyleSheet } from 'react-native';
+
+import { BoxModel, ColorPalette } from '../../base/styles';
 
 export const PLACEHOLDER_TEXT_COLOR = 'rgba(255, 255, 255, 0.3)';
 
@@ -21,7 +23,7 @@ const TEXT_COLOR = ColorPalette.white;
  * The styles of the React {@code Components} of the feature welcome including
  * {@code WelcomePage} and {@code BlankPage}.
  */
-export default createStyleSheet({
+export default {
 
     /**
      * The audio-video switch itself.
@@ -39,11 +41,14 @@ export default createStyleSheet({
     },
 
     /**
-     * Style of the avatar in te side bar.
+     * View that is rendered when there is no welcome page.
      */
-    avatar: {
-        alignSelf: 'center',
-        flex: 0
+    blankPageWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        flex: 1,
+        flexDirection: 'column',
+        justifyContent: 'center'
     },
 
     /**
@@ -164,11 +169,33 @@ export default createStyleSheet({
     },
 
     /**
+     * The styles for reduced UI mode.
+     */
+    reducedUIContainer: {
+        alignItems: 'center',
+        backgroundColor: ColorPalette.blue,
+        flex: 1,
+        justifyContent: 'center'
+    },
+
+    reducedUIText: {
+        color: TEXT_COLOR,
+        fontSize: 12
+    },
+
+    /**
      * Container for room name input box and 'join' button.
      */
     roomContainer: {
         alignSelf: 'stretch',
         flexDirection: 'column'
+    },
+
+    /**
+     * Container of the side bar.
+     */
+    sideBar: {
+        width: 250
     },
 
     /**
@@ -262,4 +289,4 @@ export default createStyleSheet({
         backgroundColor: ColorPalette.blue,
         overflow: 'hidden'
     }
-});
+};

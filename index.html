@@ -1,13 +1,21 @@
 <html itemscope itemtype="http://schema.org/Product" prefix="og: http://ogp.me/ns#" xmlns="http://www.w3.org/1999/html">
   <head>
+    <!--#include virtual="head.html" -->
     <meta charset="utf-8">
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!--#include virtual="base.html" -->
 
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
     <link rel="stylesheet" href="css/all.css">
 
     <script>
+        // IE11 and earlier can be identified via their user agent and be
+        // redirected to a page that is known to have no newer js syntax.
+        if (window.navigator.userAgent.match(/(MSIE|Trident)/)) {
+            window.location.href = "static/recommendedBrowsers.html";
+        }
+
         window.indexLoadedTime = window.performance.now();
         console.log("(TIME) index.html loaded:\t", indexLoadedTime);
         // XXX the code below listeners for errors and displays an error message
@@ -87,11 +95,14 @@
                         + "font-size:small;"
                         + "cursor: pointer'>" + showMoreText + "</a>"
                         + "&nbsp;&nbsp;&nbsp;"
-                        + "<a href='" + href + "' style='"
+                        + "<a id ='reloadLink' style='"
                         + "text-decoration: underline;"
                         + "font-size:small;"
                         + "'>reload now</a>"
                         + "</div>";
+
+                    var reloadLink = document.getElementById('reloadLink');
+                    reloadLink.setAttribute('href', href);
 
                     var showMoreElem = document.getElementById("showMore");
                     showMoreElem.addEventListener('click', function () {
@@ -139,8 +150,10 @@
     <!--#include virtual="title.html" -->
     <!--#include virtual="plugin.head.html" -->
     <!--#include virtual="static/welcomePageAdditionalContent.html" -->
+    <!--#include virtual="static/settingsToolbarAdditionalContent.html" -->
   </head>
   <body>
+    <!--#include virtual="body.html" -->
     <div id="react"></div>
   </body>
 </html>

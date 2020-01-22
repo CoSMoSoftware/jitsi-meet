@@ -1,10 +1,17 @@
 // @flow
 
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
+
+import { connect } from '../../redux';
 
 import { ASPECT_RATIO_NARROW, ASPECT_RATIO_WIDE } from '../constants';
+
+/**
+ * The type of the React {@code Component} props of {@link AspectRatioAware}.
+ */
+type Props = {
+    aspectRatio: ASPECT_RATIO_NARROW | ASPECT_RATIO_WIDE
+};
 
 /**
  * Determines whether a specific React {@code Component} decorated into an
@@ -34,20 +41,7 @@ export function makeAspectRatioAware(
     /**
      * Renders {@code WrappedComponent} with the React prop {@code aspectRatio}.
      */
-    class AspectRatioAware extends Component<*> {
-        /**
-         * Properties of the aspect ratio aware wrapper.
-         */
-        static propTypes = {
-            /**
-             * Either {@link ASPECT_RATIO_NARROW} or {@link ASPECT_RATIO_WIDE}.
-             */
-            aspectRatio: PropTypes.oneOf([
-                ASPECT_RATIO_NARROW,
-                ASPECT_RATIO_WIDE
-            ])
-        }
-
+    class AspectRatioAware extends Component<Props> {
         /**
          * Implement's React render method to wrap the nested component.
          *
@@ -58,7 +52,6 @@ export function makeAspectRatioAware(
         }
     }
 
-    // $FlowFixMe
     return connect(_mapStateToProps)(AspectRatioAware);
 }
 

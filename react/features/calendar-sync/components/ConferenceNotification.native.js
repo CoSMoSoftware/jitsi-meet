@@ -2,15 +2,14 @@
 
 import React, { Component } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { connect } from 'react-redux';
 
 import { appNavigate } from '../../app';
 import { getURLWithoutParamsNormalized } from '../../base/connection';
-import { Icon } from '../../base/font-icons';
 import { getLocalizedDateFormatter, translate } from '../../base/i18n';
+import { Icon, IconNotificationJoin } from '../../base/icons';
+import { connect } from '../../base/redux';
 import { ASPECT_RATIO_NARROW } from '../../base/responsive-ui';
 
-import { CALENDAR_ENABLED } from '../constants';
 import styles from './styles';
 
 const ALERT_MILLISECONDS = 5 * 60 * 1000;
@@ -156,7 +155,7 @@ class ConferenceNotification extends Component<Props, State> {
                                         styles.notificationIconContainer
                                     }>
                                     <Icon
-                                        name = 'navigate_next'
+                                        src = { IconNotificationJoin }
                                         style = { styles.notificationIcon } />
                                 </View>
                             </View>
@@ -237,9 +236,10 @@ class ConferenceNotification extends Component<Props, State> {
 
             for (const event of _eventList) {
                 const eventUrl
-                    = getURLWithoutParamsNormalized(new URL(event.url));
+                    = event.url
+                        && getURLWithoutParamsNormalized(new URL(event.url));
 
-                if (eventUrl !== _currentConferenceURL) {
+                if (eventUrl && eventUrl !== _currentConferenceURL) {
                     if ((!eventToShow
                                 && event.startDate > now
                                 && event.startDate < now + ALERT_MILLISECONDS)
@@ -293,6 +293,4 @@ function _mapStateToProps(state: Object) {
     };
 }
 
-export default CALENDAR_ENABLED
-    ? translate(connect(_mapStateToProps)(ConferenceNotification))
-    : undefined;
+export default translate(connect(_mapStateToProps)(ConferenceNotification));

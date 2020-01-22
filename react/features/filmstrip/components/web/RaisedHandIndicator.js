@@ -1,43 +1,49 @@
-import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+/* @flow */
 
-import BaseIndicator from './BaseIndicator';
+import React from 'react';
+
+import { IconRaisedHand } from '../../../base/icons';
+import { BaseIndicator } from '../../../base/react';
+import { connect } from '../../../base/redux';
+
+import AbstractRaisedHandIndicator, {
+    type Props as AbstractProps,
+    _mapStateToProps
+} from '../AbstractRaisedHandIndicator';
+
+/**
+ * The type of the React {@code Component} props of {@link RaisedHandIndicator}.
+ */
+type Props = AbstractProps & {
+
+    /**
+     * The font-size for the icon.
+     */
+    iconSize: number,
+
+    /**
+     * From which side of the indicator the tooltip should appear from.
+     */
+    tooltipPosition: string
+};
 
 /**
  * Thumbnail badge showing that the participant would like to speak.
  *
  * @extends Component
  */
-class RaisedHandIndicator extends Component {
+class RaisedHandIndicator extends AbstractRaisedHandIndicator<Props> {
     /**
-     * {@code RaisedHandIndicator} component's property types.
+     * Renders the platform specific indicator element.
      *
-     * @static
+     * @returns {React$Element<*>}
      */
-    static propTypes = {
-        /**
-         * The font-size for the icon.
-         *
-         * @type {number}
-         */
-        iconSize: PropTypes.number,
-
-        /**
-         * From which side of the indicator the tooltip should appear from.
-         */
-        tooltipPosition: PropTypes.string
-    };
-
-    /**
-     * Implements React's {@link Component#render()}.
-     *
-     * @inheritdoc
-     */
-    render() {
+    _renderIndicator() {
         return (
             <BaseIndicator
                 className = 'raisehandindicator indicator show-inline'
-                iconClassName = 'icon-raised-hand indicatoricon'
+                icon = { IconRaisedHand }
+                iconClassName = 'indicatoricon'
                 iconSize = { `${this.props.iconSize}px` }
                 tooltipKey = 'raisedHand'
                 tooltipPosition = { this.props.tooltipPosition } />
@@ -45,4 +51,4 @@ class RaisedHandIndicator extends Component {
     }
 }
 
-export default RaisedHandIndicator;
+export default connect(_mapStateToProps)(RaisedHandIndicator);

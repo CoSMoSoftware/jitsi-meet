@@ -1,5 +1,6 @@
 /*
- * Copyright @ 2017-present Atlassian Pty Ltd
+ * Copyright @ 2019-present 8x8, Inc.
+ * Copyright @ 2017-2018 Atlassian Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +22,14 @@ import android.app.Activity;
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler;
 
 /**
- * Defines the default behavior of {@code JitsiMeetActivity} and
+ * Defines the default behavior of {@code JitsiMeetFragment} and
  * {@code JitsiMeetView} upon invoking the back button if no
  * {@code JitsiMeetView} handles the invocation. For example, a
  * {@code JitsiMeetView} may (1) handle the invocation of the back button
  * during a conference by leaving the conference and (2) not handle the
  * invocation when not in a conference.
  */
-public class DefaultHardwareBackBtnHandlerImpl
-    implements DefaultHardwareBackBtnHandler {
+class DefaultHardwareBackBtnHandlerImpl implements DefaultHardwareBackBtnHandler {
 
     /**
      * The {@code Activity} to which the default handling of the back button

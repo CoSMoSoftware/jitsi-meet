@@ -1,52 +1,53 @@
+/* @flow */
+
 import InlineDialog from '@atlaskit/inline-dialog';
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 
 import { createToolbarEvent, sendAnalytics } from '../../../analytics';
 import { translate } from '../../../base/i18n';
+import { IconMenuThumb } from '../../../base/icons';
 
 import ToolbarButton from './ToolbarButton';
+
+/**
+ * The type of the React {@code Component} props of {@link OverflowMenuButton}.
+ */
+type Props = {
+
+    /**
+     * A child React Element to display within {@code InlineDialog}.
+     */
+    children: React$Node,
+
+    /**
+     * Whether or not the OverflowMenu popover should display.
+     */
+    isOpen: boolean,
+
+    /**
+     * Calback to change the visibility of the overflow menu.
+     */
+    onVisibilityChange: Function,
+
+    /**
+     * Invoked to obtain translated strings.
+     */
+    t: Function
+};
 
 /**
  * A React {@code Component} for opening or closing the {@code OverflowMenu}.
  *
  * @extends Component
  */
-class OverflowMenuButton extends Component {
-    /**
-     * {@code OverflowMenuButton} component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * A child React Element to display within {@code InlineDialog}.
-         */
-        children: PropTypes.object,
-
-        /**
-         * Whether or not the OverflowMenu popover should display.
-         */
-        isOpen: PropTypes.bool,
-
-        /**
-         * Calback to change the visiblility of the overflow menu.
-         */
-        onVisibilityChange: PropTypes.func,
-
-        /**
-         * Invoked to obtain translated strings.
-         */
-        t: PropTypes.func
-    };
-
+class OverflowMenuButton extends Component<Props> {
     /**
      * Initializes a new {@code OverflowMenuButton} instance.
      *
      * @param {Object} props - The read-only properties with which the new
      * instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         // Bind event handlers so they are only bound once per instance.
@@ -63,7 +64,6 @@ class OverflowMenuButton extends Component {
      */
     render() {
         const { children, isOpen, t } = this.props;
-        const iconClasses = `icon-thumb-menu ${isOpen ? 'toggled' : ''}`;
 
         return (
             <div className = 'toolbox-button-wth-dialog'>
@@ -75,13 +75,16 @@ class OverflowMenuButton extends Component {
                     <ToolbarButton
                         accessibilityLabel =
                             { t('toolbar.accessibilityLabel.moreActions') }
-                        iconName = { iconClasses }
+                        icon = { IconMenuThumb }
                         onClick = { this._onToggleDialogVisibility }
+                        toggled = { isOpen }
                         tooltip = { t('toolbar.moreActions') } />
                 </InlineDialog>
             </div>
         );
     }
+
+    _onCloseDialog: () => void;
 
     /**
      * Callback invoked when {@code InlineDialog} signals that it should be
@@ -93,6 +96,8 @@ class OverflowMenuButton extends Component {
     _onCloseDialog() {
         this.props.onVisibilityChange(false);
     }
+
+    _onToggleDialogVisibility: () => void;
 
     /**
      * Callback invoked to signal that an event has occurred that should change

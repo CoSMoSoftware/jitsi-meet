@@ -15,15 +15,10 @@
 	<key>CFBundlePackageType</key>
 	<string>FMWK</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.9.0</string>
+	<string>2.6.0</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSPrincipalClass</key>
 	<string></string>
-  <key>JitsiMeetFonts</key>
-  <array>
-    <string>FontAwesome.ttf</string>
-    <string>jitsi.ttf</string>
-  </array>
 </dict>
 </plist>

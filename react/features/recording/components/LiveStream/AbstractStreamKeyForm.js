@@ -1,5 +1,6 @@
 // @flow
 
+import debounce from 'lodash/debounce';
 import { Component } from 'react';
 
 declare var interfaceConfig: Object;
@@ -39,10 +40,11 @@ export type Props = {
 type State = {
 
     /**
-     * The value entered in the field.
+     * Whether or not to show the warnings that the passed in value seems like
+     * an improperly formatted stream key.
      */
-    value: string
-}
+    showValidationError: boolean
+};
 
 /**
  * An abstract React Component for entering a key for starting a YouTube live
@@ -50,38 +52,56 @@ type State = {
  *
  * @extends Component
  */
-export default class AbstractStreamKeyForm extends Component<Props, State> {
+export default class AbstractStreamKeyForm<P: Props>
+    extends Component<P, State> {
     helpURL: string;
+    _debouncedUpdateValidationErrorVisibility: Function;
 
     /**
      * Constructor for the component.
      *
      * @inheritdoc
      */
-    constructor(props: Props) {
+    constructor(props: P) {
         super(props);
 
         this.state = {
-            value: props.value
+            showValidationError: Boolean(this.props.value)
+                && !this._validateStreamKey(this.props.value)
         };
 
         this.helpURL = (typeof interfaceConfig !== 'undefined'
             && interfaceConfig.LIVE_STREAMING_HELP_LINK)
             || LIVE_STREAMING_HELP_LINK;
 
+        this._debouncedUpdateValidationErrorVisibility = debounce(
+            this._updateValidationErrorVisibility.bind(this),
+            800,
+            { leading: false }
+        );
+
         // Bind event handlers so they are only bound once per instance.
         this._onInputChange = this._onInputChange.bind(this);
     }
 
     /**
-     * Implements {@code Component}'s componentWillReceiveProps.
+     * Implements React Component's componentDidUpdate.
      *
      * @inheritdoc
      */
-    componentWillReceiveProps(newProps: Props) {
-        this.setState({
-            value: newProps.value
-        });
+    componentDidUpdate(prevProps: P) {
+        if (this.props.value !== prevProps.value) {
+            this._debouncedUpdateValidationErrorVisibility();
+        }
+    }
+
+    /**
+     * Implements React Component's componentWillUnmount.
+     *
+     * @inheritdoc
+     */
+    componentWillUnmount() {
+        this._debouncedUpdateValidationErrorVisibility.cancel();
     }
 
     _onInputChange: Object => void
@@ -99,9 +119,40 @@ export default class AbstractStreamKeyForm extends Component<Props, State> {
     _onInputChange(change) {
         const value = typeof change === 'object' ? change.target.value : change;
 
-        this.setState({
-            value
-        });
         this.props.onChange(value);
+    }
+
+    /**
+     * Checks if the stream key value seems like a valid stream key and sets the
+     * state for showing or hiding the notification about the stream key seeming
+     * invalid.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    _updateValidationErrorVisibility() {
+        const newShowValidationError = Boolean(this.props.value)
+            && !this._validateStreamKey(this.props.value);
+
+        if (newShowValidationError !== this.state.showValidationError) {
+            this.setState({
+                showValidationError: newShowValidationError
+            });
+        }
+    }
+
+    /**
+     * Checks if a passed in stream key appears to be in a valid format.
+     *
+     * @param {string} streamKey - The stream key to check for valid formatting.
+     * @returns {void}
+     * @returns {boolean}
+     */
+    _validateStreamKey(streamKey = '') {
+        const trimmedKey = streamKey.trim();
+        const fourGroupsDashSeparated = /^(?:[a-zA-Z0-9]{4}(?:-(?!$)|$)){4}/;
+        const match = fourGroupsDashSeparated.exec(trimmedKey);
+
+        return Boolean(match);
     }
 }

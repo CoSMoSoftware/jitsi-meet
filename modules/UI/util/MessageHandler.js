@@ -4,6 +4,7 @@ const logger = require('jitsi-meet-logger').getLogger(__filename);
 import jitsiLocalStorage from '../../util/JitsiLocalStorage';
 
 import {
+    NOTIFICATION_TIMEOUT,
     showErrorNotification,
     showNotification,
     showWarningNotification
@@ -115,43 +116,6 @@ function isDontShowAgainEnabled(options) {
 const messageHandler = {
     OK: 'dialog.OK',
     CANCEL: 'dialog.Cancel',
-
-    /**
-     * Shows a message to the user.
-     *
-     * @param titleKey the key used to find the translation of the title of the
-     * message, if a message title is not provided.
-     * @param messageKey the key used to find the translation of the message
-     * @param i18nOptions the i18n options (optional)
-     * @param closeFunction function to be called after
-     * the prompt is closed (optional)
-     * @return the prompt that was created, or null
-     */
-    // eslint-disable-next-line max-params
-    openMessageDialog(titleKey, messageKey, i18nOptions, closeFunction) {
-        if (!popupEnabled) {
-            return null;
-        }
-
-        const dialog = $.prompt(
-            APP.translation.generateTranslationHTML(messageKey, i18nOptions),
-            {
-                title: this._getFormattedTitleString(titleKey),
-                persistent: false,
-                promptspeed: 0,
-                classes: this._getDialogClasses(),
-                // eslint-disable-next-line max-params
-                close(e, v, m, f) {
-                    if (closeFunction) {
-                        closeFunction(e, v, m, f);
-                    }
-                }
-            });
-
-        APP.translation.translateElement(dialog, i18nOptions);
-
-        return $.prompt.getApi();
-    },
 
     /**
      * Shows a message to the user with two buttons: first is given as a
@@ -374,7 +338,7 @@ const messageHandler = {
             box: '',
             form: '',
             prompt: `dialog aui-layer aui-dialog2 aui-dialog2-${size}`,
-            close: 'aui-icon aui-icon-small aui-iconfont-close-dialog',
+            close: 'aui-hide',
             fade: 'aui-blanket',
             button: 'button-control',
             message: 'aui-dialog2-content',
@@ -491,7 +455,7 @@ const messageHandler = {
             cls,
             messageKey,
             messageArguments,
-            timeout = 2500) {
+            timeout = NOTIFICATION_TIMEOUT) {
         APP.store.dispatch(showNotification({
             descriptionArguments: messageArguments,
             descriptionKey: messageKey,

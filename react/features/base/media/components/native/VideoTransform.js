@@ -2,8 +2,11 @@
 
 import React, { Component } from 'react';
 import { PanResponder, PixelRatio, View } from 'react-native';
-import { connect } from 'react-redux';
 import { type Dispatch } from 'redux';
+
+import { connect } from '../../../redux';
+
+import type { PanResponderInstance } from 'PanResponder';
 
 import { storeVideoTransform } from '../../actions';
 import styles from './styles';
@@ -117,7 +120,7 @@ class VideoTransform extends Component<Props, State> {
     /**
      * The gesture handler object.
      */
-    gestureHandlers: PanResponder;
+    gestureHandlers: PanResponderInstance;
 
     /**
      * The initial distance of the fingers on pinch start.
@@ -152,7 +155,8 @@ class VideoTransform extends Component<Props, State> {
 
         this.state = {
             layout: null,
-            transform: DEFAULT_TRANSFORM
+            transform:
+                this._getSavedTransform(props.streamId) || DEFAULT_TRANSFORM
         };
 
         this._didMove = this._didMove.bind(this);
@@ -166,14 +170,7 @@ class VideoTransform extends Component<Props, State> {
         this._onPanResponderRelease = this._onPanResponderRelease.bind(this);
         this._onStartShouldSetPanResponder
             = this._onStartShouldSetPanResponder.bind(this);
-    }
 
-    /**
-     * Implements React Component's componentWillMount.
-     *
-     * @inheritdoc
-     */
-    componentWillMount() {
         // The move threshold should be adaptive to the pixel ratio of the
         // screen to avoid making it too sensitive or difficult to handle on
         // different pixel ratio screens.
@@ -189,21 +186,17 @@ class VideoTransform extends Component<Props, State> {
             onShouldBlockNativeResponder: () => false,
             onStartShouldSetPanResponder: this._onStartShouldSetPanResponder
         });
-
-        const { streamId } = this.props;
-
-        this._restoreTransform(streamId);
     }
 
     /**
-     * Implements React Component's componentWillReceiveProps.
+     * Implements React Component's componentDidUpdate.
      *
      * @inheritdoc
      */
-    componentWillReceiveProps({ streamId: newStreamId }) {
-        if (this.props.streamId !== newStreamId) {
-            this._storeTransform();
-            this._restoreTransform(newStreamId);
+    componentDidUpdate(prevProps: Props, prevState: State) {
+        if (prevProps.streamId !== this.props.streamId) {
+            this._storeTransform(prevProps.streamId, prevState.transform);
+            this._restoreTransform(this.props.streamId);
         }
     }
 
@@ -213,7 +206,7 @@ class VideoTransform extends Component<Props, State> {
      * @inheritdoc
      */
     componentWillUnmount() {
-        this._storeTransform();
+        this._storeTransform(this.props.streamId, this.state.transform);
     }
 
     /**
@@ -291,6 +284,20 @@ class VideoTransform extends Component<Props, State> {
     _didMove({ dx, dy }) {
         return Math.abs(dx) > this.moveThreshold
                 || Math.abs(dy) > this.moveThreshold;
+    }
+
+    /**
+     * Returns the stored transform a stream should display with initially.
+     *
+     * @param {string} streamId - The id of the stream to match with a stored
+     * transform.
+     * @private
+     * @returns {Object | null}
+     */
+    _getSavedTransform(streamId) {
+        const { enabled, _transforms } = this.props;
+
+        return (enabled && _transforms[streamId]) || null;
     }
 
     _getTouchDistance: Object => number;
@@ -647,31 +654,29 @@ class VideoTransform extends Component<Props, State> {
      * @returns {void}
      */
     _restoreTransform(streamId) {
-        const { enabled, _transforms } = this.props;
+        const savedTransform = this._getSavedTransform(streamId);
 
-        if (enabled) {
-            const initialTransform = _transforms[streamId];
-
-            if (initialTransform) {
-                this.setState({
-                    transform: initialTransform
-                });
-            }
+        if (savedTransform) {
+            this.setState({
+                transform: savedTransform
+            });
         }
     }
 
     /**
-     * Stores/saves the current transform when the component is destroyed, or a
+     * Stores/saves the a transform when the component is destroyed, or a
      * new stream is about to be rendered.
      *
+     * @param {string} streamId - The stream id associated with the transform.
+     * @param {Object} transform - The {@Transform} to save.
      * @private
      * @returns {void}
      */
-    _storeTransform() {
-        const { _onUnmount, enabled, streamId } = this.props;
+    _storeTransform(streamId, transform) {
+        const { _onUnmount, enabled } = this.props;
 
         if (enabled) {
-            _onUnmount(streamId, this.state.transform);
+            _onUnmount(streamId, transform);
         }
     }
 }
@@ -685,7 +690,7 @@ class VideoTransform extends Component<Props, State> {
  *     _onUnmount: Function
  * }}
  */
-function _mapDispatchToProps(dispatch: Dispatch<*>) {
+function _mapDispatchToProps(dispatch: Dispatch<any>) {
     return {
         /**
          * Dispatches actions to store the last applied transform to a video.

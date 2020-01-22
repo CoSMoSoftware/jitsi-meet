@@ -16,21 +16,27 @@
 
 package org.jitsi.meet.sdk;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.PictureInPictureParams;
 import android.os.Build;
-import android.util.Log;
 import android.util.Rational;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.module.annotations.ReactModule;
 
+import org.jitsi.meet.sdk.log.JitsiMeetLogger;
+
+@ReactModule(name = PictureInPictureModule.NAME)
 class PictureInPictureModule
     extends ReactContextBaseJavaModule {
 
-    private final static String TAG = "PictureInPicture";
+    public static final String NAME = "PictureInPicture";
+
+    private static final String TAG = NAME;
 
     static boolean isPictureInPictureSupported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
@@ -53,6 +59,7 @@ class PictureInPictureModule
      * including when the activity is not visible (paused or stopped), if the
      * screen is locked or if the user has an activity pinned.
      */
+    @TargetApi(Build.VERSION_CODES.O)
     public void enterPictureInPicture() {
         if (!isPictureInPictureSupported()) {
             throw new IllegalStateException("Picture-in-Picture not supported");
@@ -64,7 +71,7 @@ class PictureInPictureModule
             throw new IllegalStateException("No current Activity!");
         }
 
-        Log.d(TAG, "Entering Picture-in-Picture");
+        JitsiMeetLogger.i(TAG + " Entering Picture-in-Picture");
 
         PictureInPictureParams.Builder builder
             = new PictureInPictureParams.Builder()
@@ -99,6 +106,6 @@ class PictureInPictureModule
 
     @Override
     public String getName() {
-        return TAG;
+        return NAME;
     }
 }

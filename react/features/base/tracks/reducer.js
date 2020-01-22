@@ -1,10 +1,12 @@
 import { PARTICIPANT_ID_CHANGED } from '../participants';
-import { ReducerRegistry } from '../redux';
+import { ReducerRegistry, set } from '../redux';
 
 import {
+    SET_NO_SRC_DATA_NOTIFICATION_UID,
     TRACK_ADDED,
     TRACK_CREATE_CANCELED,
     TRACK_CREATE_ERROR,
+    TRACK_NO_DATA_FROM_SOURCE,
     TRACK_REMOVED,
     TRACK_UPDATED,
     TRACK_WILL_CREATE
@@ -75,6 +77,21 @@ function track(state, action) {
         }
         break;
     }
+    case TRACK_NO_DATA_FROM_SOURCE: {
+        const t = action.track;
+
+        if (state.jitsiTrack === t.jitsiTrack) {
+            const isReceivingData = t.jitsiTrack.isReceivingData();
+
+            if (state.isReceivingData !== isReceivingData) {
+                return {
+                    ...state,
+                    isReceivingData
+                };
+            }
+        }
+        break;
+    }
     }
 
     return state;
@@ -86,6 +103,7 @@ function track(state, action) {
 ReducerRegistry.register('features/base/tracks', (state = [], action) => {
     switch (action.type) {
     case PARTICIPANT_ID_CHANGED:
+    case TRACK_NO_DATA_FROM_SOURCE:
     case TRACK_UPDATED:
         return state.map(t => track(t, action));
 
@@ -116,3 +134,17 @@ ReducerRegistry.register('features/base/tracks', (state = [], action) => {
         return state;
     }
 });
+
+/**
+ * Listen for actions that mutate the no-src-data state, like the current notification id
+ */
+ReducerRegistry.register('features/base/no-src-data', (state = {}, action) => {
+    switch (action.type) {
+    case SET_NO_SRC_DATA_NOTIFICATION_UID:
+        return set(state, 'noSrcDataNotificationUid', action.uid);
+
+    default:
+        return state;
+    }
+});
+

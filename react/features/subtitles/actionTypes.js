@@ -9,7 +9,7 @@
  *     json: Object
  * }
  */
-export const ENDPOINT_MESSAGE_RECEIVED = Symbol('ENDPOINT_MESSAGE_RECEIVED');
+export const ENDPOINT_MESSAGE_RECEIVED = 'ENDPOINT_MESSAGE_RECEIVED';
 
 /**
  * The type of (redux) action which indicates that an existing transcript
@@ -20,7 +20,7 @@ export const ENDPOINT_MESSAGE_RECEIVED = Symbol('ENDPOINT_MESSAGE_RECEIVED');
  *      transciptMessageID: string,
  * }
  */
-export const REMOVE_TRANSCRIPT_MESSAGE = Symbol('REMOVE_TRANSCRIPT_MESSAGE');
+export const REMOVE_TRANSCRIPT_MESSAGE = 'REMOVE_TRANSCRIPT_MESSAGE';
 
 /**
  * The type of (redux) action which indicates that a transcript with an
@@ -32,4 +32,16 @@ export const REMOVE_TRANSCRIPT_MESSAGE = Symbol('REMOVE_TRANSCRIPT_MESSAGE');
  *      newTranscriptMessage: Object
  * }
  */
-export const UPDATE_TRANSCRIPT_MESSAGE = Symbol('UPDATE_TRANSCRIPT_MESSAGE');
+export const UPDATE_TRANSCRIPT_MESSAGE = 'UPDATE_TRANSCRIPT_MESSAGE';
+
+/**
+ * The type of (redux) action which indicates that the user pressed the
+ * ClosedCaption button, to either enable or disable subtitles based on the
+ * current state.
+ *
+ * {
+ *      type: TOGGLE_REQUESTING_SUBTITLES
+ * }
+ */
+export const TOGGLE_REQUESTING_SUBTITLES
+    = 'TOGGLE_REQUESTING_SUBTITLES';

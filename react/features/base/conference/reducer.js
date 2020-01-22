@@ -10,15 +10,17 @@ import {
     CONFERENCE_FAILED,
     CONFERENCE_JOINED,
     CONFERENCE_LEFT,
+    CONFERENCE_SUBJECT_CHANGED,
+    CONFERENCE_TIMESTAMP_CHANGED,
     CONFERENCE_WILL_JOIN,
     CONFERENCE_WILL_LEAVE,
     LOCK_STATE_CHANGED,
     P2P_STATUS_CHANGED,
-    SET_AUDIO_ONLY,
     SET_DESKTOP_SHARING_ENABLED,
     SET_FOLLOW_ME,
     SET_MAX_RECEIVER_VIDEO_QUALITY,
     SET_PASSWORD,
+    SET_PENDING_SUBJECT_CHANGE,
     SET_PREFERRED_RECEIVER_VIDEO_QUALITY,
     SET_ROOM,
     SET_SIP_GATEWAY_ENABLED,
@@ -28,8 +30,13 @@ import { VIDEO_QUALITY_LEVELS } from './constants';
 import { isRoomValid } from './functions';
 
 const DEFAULT_STATE = {
+    conference: undefined,
     joining: undefined,
+    leaving: undefined,
+    locked: undefined,
     maxReceiverVideoQuality: VIDEO_QUALITY_LEVELS.HIGH,
+    password: undefined,
+    passwordRequired: undefined,
     preferredReceiverVideoQuality: VIDEO_QUALITY_LEVELS.HIGH
 };
 
@@ -50,6 +57,12 @@ ReducerRegistry.register(
         case CONFERENCE_JOINED:
             return _conferenceJoined(state, action);
 
+        case CONFERENCE_SUBJECT_CHANGED:
+            return set(state, 'subject', action.subject);
+
+        case CONFERENCE_TIMESTAMP_CHANGED:
+            return set(state, 'conferenceTimestamp', action.conferenceTimestamp);
+
         case CONFERENCE_LEFT:
         case CONFERENCE_WILL_LEAVE:
             return _conferenceLeftOrWillLeave(state, action);
@@ -65,9 +78,6 @@ ReducerRegistry.register(
 
         case P2P_STATUS_CHANGED:
             return _p2pStatusChanged(state, action);
-
-        case SET_AUDIO_ONLY:
-            return _setAudioOnly(state, action);
 
         case SET_DESKTOP_SHARING_ENABLED:
             return _setDesktopSharingEnabled(state, action);
@@ -86,6 +96,9 @@ ReducerRegistry.register(
 
         case SET_PASSWORD:
             return _setPassword(state, action);
+
+        case SET_PENDING_SUBJECT_CHANGE:
+            return set(state, 'pendingSubjectChange', action.subject);
 
         case SET_PREFERRED_RECEIVER_VIDEO_QUALITY:
             return set(
@@ -200,7 +213,8 @@ function _conferenceJoined(state, { conference }) {
     // i.e. password-protected is private to lib-jitsi-meet. However, the
     // library does not fire LOCK_STATE_CHANGED upon joining a JitsiConference
     // with a password.
-    const locked = conference.room.locked ? LOCKED_REMOTELY : undefined;
+    // FIXME Technically JitsiConference.room is a private field.
+    const locked = conference.room && conference.room.locked ? LOCKED_REMOTELY : undefined;
 
     return assign(state, {
         authRequired: undefined,
@@ -330,20 +344,6 @@ function _lockStateChanged(state, { conference, locked }) {
  */
 function _p2pStatusChanged(state, action) {
     return set(state, 'p2p', action.p2p);
-}
-
-/**
- * Reduces a specific Redux action SET_AUDIO_ONLY of the feature
- * base/conference.
- *
- * @param {Object} state - The Redux state of the feature base/conference.
- * @param {Action} action - The Redux action SET_AUDIO_ONLY to reduce.
- * @private
- * @returns {Object} The new state of the feature base/conference after the
- * reduction of the specified action.
- */
-function _setAudioOnly(state, action) {
-    return set(state, 'audioOnly', action.audioOnly);
 }
 
 /**

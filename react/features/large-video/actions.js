@@ -1,12 +1,16 @@
 // @flow
 
+import type { Dispatch } from 'redux';
+
 import {
     createSelectParticipantFailedEvent,
     sendAnalytics
 } from '../analytics';
 import { _handleParticipantError } from '../base/conference';
 import { MEDIA_TYPE } from '../base/media';
+import { getParticipants } from '../base/participants';
 import { reportError } from '../base/util';
+import { shouldDisplayTileView } from '../video-layout';
 
 import {
     SELECT_LARGE_VIDEO_PARTICIPANT,
@@ -21,22 +25,24 @@ declare var APP: Object;
  * @returns {Function}
  */
 export function selectParticipant() {
-    return (dispatch: Dispatch<*>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
         const state = getState();
         const { conference } = state['features/base/conference'];
 
         if (conference) {
-            const largeVideo = state['features/large-video'];
-            const id = largeVideo.participantId;
+            const ids = shouldDisplayTileView(state)
+                ? getParticipants(state).map(participant => participant.id)
+                : [ state['features/large-video'].participantId ];
 
             try {
-                conference.selectParticipant(id);
+                conference.selectParticipants(ids);
             } catch (err) {
                 _handleParticipantError(err);
 
                 sendAnalytics(createSelectParticipantFailedEvent(err));
 
-                reportError(err, `Failed to select participant ${id}`);
+                reportError(
+                    err, `Failed to select participants ${ids.toString()}`);
             }
         }
     };
@@ -44,13 +50,13 @@ export function selectParticipant() {
 
 /**
  * Action to select the participant to be displayed in LargeVideo based on a
- * variety of factors: if there is a dominant or pinned speaker, or if there are
+ * variety of factors: If there is a dominant or pinned speaker, or if there are
  * remote tracks, etc.
  *
  * @returns {Function}
  */
 export function selectParticipantInLargeVideo() {
-    return (dispatch: Dispatch<*>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
         const state = getState();
         const participantId = _electParticipantInLargeVideo(state);
         const largeVideo = state['features/large-video'];
@@ -101,7 +107,7 @@ function _electLastVisibleRemoteVideo(tracks) {
 }
 
 /**
- * Returns the identifier of the participant who is to be on the stage i.e.
+ * Returns the identifier of the participant who is to be on the stage and
  * should be displayed in {@code LargeVideo}.
  *
  * @param {Object} state - The Redux state from which the participant to be
@@ -139,7 +145,16 @@ function _electParticipantInLargeVideo(state) {
                 //    As a last resort, pick the last participant who joined the
                 //    conference (regardless of whether they are local or
                 //    remote).
-                participant = participants[participants.length - 1];
+                //
+                // HOWEVER: We don't want to show poltergeist or other bot type participants on stage
+                // automatically, because it's misleading (users may think they are already
+                // joined and maybe speaking).
+                for (let i = participants.length; i > 0 && !participant; i--) {
+                    const p = participants[i - 1];
+
+                    !p.botType && (participant = p);
+                }
+
                 id = participant && participant.id;
             }
         }

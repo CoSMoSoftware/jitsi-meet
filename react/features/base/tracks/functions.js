@@ -1,10 +1,56 @@
 /* global APP */
 
-import JitsiMeetJS, { JitsiTrackErrors, JitsiTrackEvents }
-    from '../lib-jitsi-meet';
+import { createScreenshotCaptureEffect } from '../../stream-effects/screenshot-capture';
+import { getBlurEffect } from '../../blur';
+import JitsiMeetJS, { JitsiTrackErrors, browser } from '../lib-jitsi-meet';
 import { MEDIA_TYPE } from '../media';
+import {
+    getUserSelectedCameraDeviceId,
+    getUserSelectedMicDeviceId
+} from '../settings';
 
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+import logger from './logger';
+
+/**
+ * Creates a local video track for presenter. The constraints are computed based
+ * on the height of the desktop that is being shared.
+ *
+ * @param {Object} options - The options with which the local presenter track
+ * is to be created.
+ * @param {string|null} [options.cameraDeviceId] - Camera device id or
+ * {@code undefined} to use app's settings.
+ * @param {number} desktopHeight - The height of the desktop that is being
+ * shared.
+ * @returns {Promise<JitsiLocalTrack>}
+ */
+export async function createLocalPresenterTrack(options, desktopHeight) {
+    const { cameraDeviceId } = options;
+
+    // compute the constraints of the camera track based on the resolution
+    // of the desktop screen that is being shared.
+    const cameraHeights = [ 180, 270, 360, 540, 720 ];
+    const proportion = 4;
+    const result = cameraHeights.find(
+            height => (desktopHeight / proportion) < height);
+    const constraints = {
+        video: {
+            aspectRatio: 4 / 3,
+            height: {
+                ideal: result
+            }
+        }
+    };
+    const [ videoTrack ] = await JitsiMeetJS.createLocalTracks(
+        {
+            cameraDeviceId,
+            constraints,
+            devices: [ 'video' ]
+        });
+
+    videoTrack.type = MEDIA_TYPE.PRESENTER;
+
+    return videoTrack;
+}
 
 /**
  * Create local tracks of specific types.
@@ -37,59 +83,72 @@ export function createLocalTracksF(
         // reliance on the global variable APP will go away.
         store || (store = APP.store); // eslint-disable-line no-param-reassign
 
-        const settings = store.getState()['features/base/settings'];
+        const state = store.getState();
 
         if (typeof cameraDeviceId === 'undefined' || cameraDeviceId === null) {
-            cameraDeviceId = settings.cameraDeviceId;
+            cameraDeviceId = getUserSelectedCameraDeviceId(state);
         }
         if (typeof micDeviceId === 'undefined' || micDeviceId === null) {
-            micDeviceId = settings.micDeviceId;
+            micDeviceId = getUserSelectedMicDeviceId(state);
         }
     }
 
+    const state = store.getState();
     const {
-        constraints,
         desktopSharingFrameRate,
         firefox_fake_device, // eslint-disable-line camelcase
         resolution
-    } = store.getState()['features/base/config'];
+    } = state['features/base/config'];
+    const constraints = options.constraints
+        ?? state['features/base/config'].constraints;
+
+    const blurPromise = state['features/blur'].blurEnabled
+        ? getBlurEffect()
+            .catch(error => {
+                logger.error('Failed to obtain the blur effect instance with error: ', error);
+
+                return Promise.resolve();
+            })
+        : Promise.resolve();
+    const screenshotCapturePromise = state['features/screenshot-capture'].capturesEnabled
+        ? createScreenshotCaptureEffect(state)
+            .catch(error => {
+                logger.error('Failed to obtain the screenshot capture effect effect instance with error: ', error);
+
+                return Promise.resolve();
+            })
+        : Promise.resolve();
+    const loadEffectsPromise = Promise.all([ blurPromise, screenshotCapturePromise ]);
 
     return (
-        JitsiMeetJS.createLocalTracks(
-            {
-                cameraDeviceId,
-                constraints,
-                desktopSharingExtensionExternalInstallation:
-                    options.desktopSharingExtensionExternalInstallation,
-                desktopSharingFrameRate,
-                desktopSharingSources: options.desktopSharingSources,
+        loadEffectsPromise.then(effectsArray => {
+            // Filter any undefined values returned by Promise.resolve().
+            const effects = effectsArray.filter(effect => Boolean(effect));
 
-                // Copy array to avoid mutations inside library.
-                devices: options.devices.slice(0),
-                firefox_fake_device, // eslint-disable-line camelcase
-                micDeviceId,
-                resolution
-            },
-            firePermissionPromptIsShownEvent)
-        .then(tracks => {
-            // TODO JitsiTrackEvents.NO_DATA_FROM_SOURCE should probably be
-            // dispatched in the redux store here and then
-            // APP.UI.showTrackNotWorkingDialog should be in a middleware
-            // somewhere else.
-            if (typeof APP !== 'undefined') {
-                tracks.forEach(track =>
-                    track.on(
-                        JitsiTrackEvents.NO_DATA_FROM_SOURCE,
-                        APP.UI.showTrackNotWorkingDialog.bind(
-                            null, track.isAudioTrack())));
-            }
+            return JitsiMeetJS.createLocalTracks(
+                {
+                    cameraDeviceId,
+                    constraints,
+                    desktopSharingExtensionExternalInstallation:
+                        options.desktopSharingExtensionExternalInstallation,
+                    desktopSharingFrameRate,
+                    desktopSharingSourceDevice:
+                        options.desktopSharingSourceDevice,
+                    desktopSharingSources: options.desktopSharingSources,
 
-            return tracks;
-        })
-        .catch(err => {
-            logger.error('Failed to create local tracks', options.devices, err);
+                    // Copy array to avoid mutations inside library.
+                    devices: options.devices.slice(0),
+                    effects,
+                    firefox_fake_device, // eslint-disable-line camelcase
+                    micDeviceId,
+                    resolution
+                },
+                firePermissionPromptIsShownEvent)
+            .catch(err => {
+                logger.error('Failed to create local tracks', options.devices, err);
 
-            return Promise.reject(err);
+                return Promise.reject(err);
+            });
         }));
 }
 
@@ -155,6 +214,18 @@ export function getLocalVideoTrack(tracks) {
 }
 
 /**
+ * Returns the media type of the local video, presenter or video.
+ *
+ * @param {Track[]} tracks - List of all tracks.
+ * @returns {MEDIA_TYPE}
+ */
+export function getLocalVideoType(tracks) {
+    const presenterTrack = getLocalTrack(tracks, MEDIA_TYPE.PRESENTER);
+
+    return presenterTrack ? MEDIA_TYPE.PRESENTER : MEDIA_TYPE.VIDEO;
+}
+
+/**
  * Returns track of specified media type for specified participant id.
  *
  * @param {Track[]} tracks - List of all tracks.
@@ -195,6 +266,29 @@ export function getTracksByMediaType(tracks, mediaType) {
 }
 
 /**
+ * Checks if the local video track in the given set of tracks is muted.
+ *
+ * @param {Track[]} tracks - List of all tracks.
+ * @returns {Track[]}
+ */
+export function isLocalVideoTrackMuted(tracks) {
+    const presenterTrack = getLocalTrack(tracks, MEDIA_TYPE.PRESENTER);
+    const videoTrack = getLocalTrack(tracks, MEDIA_TYPE.VIDEO);
+
+    // Make sure we check the mute status of only camera tracks, i.e.,
+    // presenter track when it exists, camera track when the presenter
+    // track doesn't exist.
+    if (presenterTrack) {
+        return isLocalTrackMuted(tracks, MEDIA_TYPE.PRESENTER);
+    } else if (videoTrack) {
+        return videoTrack.videoType === 'camera'
+            ? isLocalTrackMuted(tracks, MEDIA_TYPE.VIDEO) : true;
+    }
+
+    return true;
+}
+
+/**
  * Checks if the first local track in the given tracks set is muted.
  *
  * @param {Track[]} tracks - List of all tracks.
@@ -207,6 +301,36 @@ export function isLocalTrackMuted(tracks, mediaType) {
     const track = getLocalTrack(tracks, mediaType);
 
     return !track || track.muted;
+}
+
+/**
+ * Returns true if the remote track of the given media type and the given
+ * participant is muted, false otherwise.
+ *
+ * @param {Track[]} tracks - List of all tracks.
+ * @param {MEDIA_TYPE} mediaType - The media type of tracks to be checked.
+ * @param {*} participantId - Participant ID.
+ * @returns {boolean}
+ */
+export function isRemoteTrackMuted(tracks, mediaType, participantId) {
+    const track = getTrackByMediaTypeAndParticipant(
+        tracks, mediaType, participantId);
+
+    return !track || track.muted;
+}
+
+/**
+ * Returns whether or not the current environment needs a user interaction with
+ * the page before any unmute can occur.
+ *
+ * @param {Object} state - The redux state.
+ * @returns {boolean}
+ */
+export function isUserInteractionRequiredForUnmute(state) {
+    return browser.isUserInteractionRequiredForUnmute()
+        && window
+        && window.self !== window.top
+        && !state['features/base/user-interaction'].interacted;
 }
 
 /**

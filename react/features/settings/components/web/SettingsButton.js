@@ -1,9 +1,9 @@
 // @flow
 
-import { connect } from 'react-redux';
-
 import { createToolbarEvent, sendAnalytics } from '../../../analytics';
 import { translate } from '../../../base/i18n';
+import { IconSettings } from '../../../base/icons';
+import { connect } from '../../../base/redux';
 import { AbstractButton } from '../../../base/toolbox';
 import type { AbstractButtonProps } from '../../../base/toolbox';
 import { openDeviceSelectionPopup } from '../../../device-selection';
@@ -24,6 +24,11 @@ type Props = AbstractButtonProps & {
     _filmstripOnly: boolean,
 
     /**
+     * The default tab at which the settings dialog will be opened.
+     */
+    defaultTab: string,
+
+    /**
      * The redux {@code dispatch} function.
      */
     dispatch: Function
@@ -34,7 +39,7 @@ type Props = AbstractButtonProps & {
  */
 class SettingsButton extends AbstractButton<Props, *> {
     accessibilityLabel = 'toolbar.accessibilityLabel.Settings';
-    iconName = 'icon-settings';
+    icon = IconSettings;
     label = 'toolbar.Settings';
     tooltip = 'toolbar.Settings';
 
@@ -45,13 +50,16 @@ class SettingsButton extends AbstractButton<Props, *> {
      * @returns {void}
      */
     _handleClick() {
-        const { _filmstripOnly, dispatch } = this.props;
+        const {
+            _filmstripOnly,
+            defaultTab = SETTINGS_TABS.DEVICES,
+            dispatch } = this.props;
 
         sendAnalytics(createToolbarEvent('settings'));
         if (_filmstripOnly) {
             dispatch(openDeviceSelectionPopup());
         } else {
-            dispatch(openSettingsDialog(SETTINGS_TABS.DEVICES));
+            dispatch(openSettingsDialog(defaultTab));
         }
     }
 }

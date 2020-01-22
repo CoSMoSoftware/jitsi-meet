@@ -1,7 +1,8 @@
 // @flow
 
-import PropTypes from 'prop-types';
+import { randomInt } from 'js-utils/random';
 import React, { Component } from 'react';
+import type { Dispatch } from 'redux';
 
 import {
     createPageReloadScheduledEvent,
@@ -12,62 +13,79 @@ import {
     isFatalJitsiConferenceError,
     isFatalJitsiConnectionError
 } from '../../base/lib-jitsi-meet';
-import { randomInt } from '../../base/util';
 
-import ReloadButton from './ReloadButton';
+import logger from '../logger';
+import ReloadButton from './web/ReloadButton';
 
 declare var APP: Object;
 
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+/**
+ * The type of the React {@code Component} props of
+ * {@link AbstractPageReloadOverlay}.
+ */
+export type Props = {
+
+    /**
+     * The details is an object containing more information about the connection
+     * failed (shard changes, was the computer suspended, etc.)
+     */
+    details: Object,
+
+    dispatch: Dispatch<any>,
+
+    /**
+     * The indicator which determines whether the reload was caused by network
+     * failure.
+     */
+    isNetworkFailure: boolean,
+
+    /**
+     * The reason for the error that will cause the reload.
+     * NOTE: Used by PageReloadOverlay only.
+     */
+    reason: string,
+
+    /**
+     * The function to translate human-readable text.
+     */
+    t: Function
+};
+
+/**
+ * The type of the React {@code Component} state of
+ * {@link AbstractPageReloadOverlay}.
+ */
+type State = {
+
+    /**
+     * The translation key for the title of the overlay.
+     */
+    message: string,
+
+    /**
+     * Current value(time) of the timer.
+     */
+    timeLeft: number,
+
+    /**
+     * How long the overlay dialog will be displayed before the conference will
+     * be reloaded.
+     */
+    timeoutSeconds: number,
+
+    /**
+     * The translation key for the title of the overlay.
+     */
+    title: string
+};
 
 /**
  * Implements an abstract React {@link Component} for the page reload overlays.
+ *
+ * FIXME: This is not really an abstract class as some components and functions are very web specific.
  */
-export default class AbstractPageReloadOverlay extends Component<*, *> {
-    /**
-     * {@code AbstractPageReloadOverlay} component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The details is an object containing more information about the
-         * connection failed (shard changes, was the computer suspended, etc.)
-         *
-         * @public
-         * @type {object}
-         */
-        details: PropTypes.object,
-
-        dispatch: PropTypes.func,
-
-        /**
-         * The indicator which determines whether the reload was caused by
-         * network failure.
-         *
-         * @public
-         * @type {boolean}
-         */
-        isNetworkFailure: PropTypes.bool,
-
-        /**
-         * The reason for the error that will cause the reload.
-         * NOTE: Used by PageReloadOverlay only.
-         *
-         * @public
-         * @type {string}
-         */
-        reason: PropTypes.string,
-
-        /**
-         * The function to translate human-readable text.
-         *
-         * @public
-         * @type {Function}
-         */
-        t: PropTypes.func
-    };
-
+export default class AbstractPageReloadOverlay<P: Props>
+    extends Component<P, State> {
     /**
      * Determines whether this overlay needs to be rendered (according to a
      * specific redux state). Called by {@link OverlayContainer}.
@@ -109,38 +127,6 @@ export default class AbstractPageReloadOverlay extends Component<*, *> {
 
     _interval: ?IntervalID;
 
-    state: {
-
-        /**
-         * The translation key for the title of the overlay.
-         *
-         * @type {string}
-         */
-        message: string,
-
-        /**
-         * Current value(time) of the timer.
-         *
-         * @type {number}
-         */
-        timeLeft: number,
-
-        /**
-         * How long the overlay dialog will be displayed before the
-         * conference will be reloaded.
-         *
-         * @type {number}
-         */
-        timeoutSeconds: number,
-
-        /**
-         * The translation key for the title of the overlay.
-         *
-         * @type {string}
-         */
-        title: string
-    };
-
     /**
      * Initializes a new AbstractPageReloadOverlay instance.
      *
@@ -148,7 +134,7 @@ export default class AbstractPageReloadOverlay extends Component<*, *> {
      * instance is to be initialized.
      * @public
      */
-    constructor(props: Object) {
+    constructor(props: P) {
         super(props);
 
         /**

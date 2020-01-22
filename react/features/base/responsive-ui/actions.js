@@ -12,9 +12,7 @@ import type { Dispatch } from 'redux';
  * very brittle because it's completely disconnected from the UI which wants to
  * be rendered and, naturally, it broke on iPad where even the secondary Toolbar
  * didn't fit in the height. We do need to measure the actual UI at runtime and
- * determine whether and how to render it. I'm bumping from 240 to 300 because I
- * don't have the time now to refactor {@code ReducedUIDetector} or rip it out
- * completely.
+ * determine whether and how to render it.
  */
 const REDUCED_UI_THRESHOLD = 300;
 
@@ -30,7 +28,7 @@ const REDUCED_UI_THRESHOLD = 300;
  * }}
  */
 export function setAspectRatio(width: number, height: number): Function {
-    return (dispatch: Dispatch<*>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
         // Don't change the aspect ratio if width and height are the same, that
         // is, if we transition to a 1:1 aspect ratio.
         if (width !== height) {
@@ -60,7 +58,7 @@ export function setAspectRatio(width: number, height: number): Function {
  * }}
  */
 export function setReducedUI(width: number, height: number): Function {
-    return (dispatch: Dispatch<*>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
         const reducedUI = Math.min(width, height) < REDUCED_UI_THRESHOLD;
 
         if (reducedUI !== getState()['features/base/responsive-ui'].reducedUI) {

@@ -1,5 +1,7 @@
-import PropTypes from 'prop-types';
+/* @flow */
+
 import React, { Component } from 'react';
+import type { Dispatch } from 'redux';
 
 import { trackVideoStarted } from '../../tracks';
 
@@ -7,75 +9,63 @@ import { shouldRenderVideoTrack } from '../functions';
 import { Video } from './_';
 
 /**
+ * The type of the React {@code Component} props of {@link AbstractVideoTrack}.
+ */
+export type Props = {
+
+    /**
+     * The Redux dispatch function.
+     */
+    dispatch: Dispatch<any>,
+
+    /**
+     * Callback to invoke when the {@link Video} of {@code AbstractVideoTrack}
+     * is clicked/pressed.
+     */
+    onPress?: Function,
+
+    /**
+     * The Redux representation of the participant's video track.
+     */
+    videoTrack?: Object,
+
+    /**
+     * Whether or not video should be rendered after knowing video playback has
+     * started.
+     */
+    waitForVideoStarted?: boolean,
+
+    /**
+     * The z-order of the Video of AbstractVideoTrack in the stacking space of
+     * all Videos. For more details, refer to the zOrder property of the Video
+     * class for React Native.
+     */
+    zOrder?: number,
+
+    /**
+     * Indicates whether zooming (pinch to zoom and/or drag) is enabled.
+     */
+    zoomEnabled?: boolean
+};
+
+/**
  * Implements a React {@link Component} that renders video element for a
  * specific video track.
  *
  * @abstract
  */
-export default class AbstractVideoTrack extends Component {
-    /**
-     * AbstractVideoTrack component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        dispatch: PropTypes.func,
-
-        /**
-         * Callback to invoke when the {@link Video} of
-         * {@code AbstractVideoTrack} is clicked/pressed.
-         */
-        onPress: PropTypes.func,
-
-        videoTrack: PropTypes.object,
-
-        waitForVideoStarted: PropTypes.bool,
-
-        /**
-         * The z-order of the Video of AbstractVideoTrack in the stacking space
-         * of all Videos. For more details, refer to the zOrder property of the
-         * Video class for React Native.
-         */
-        zOrder: PropTypes.number,
-
-        /**
-         * Indicates whether zooming (pinch to zoom and/or drag) is enabled.
-         */
-        zoomEnabled: PropTypes.bool
-    };
-
+export default class AbstractVideoTrack<P: Props> extends Component<P> {
     /**
      * Initializes a new AbstractVideoTrack instance.
      *
      * @param {Object} props - The read-only properties with which the new
      * instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: P) {
         super(props);
-
-        this.state = {
-            videoTrack: _falsy2null(props.videoTrack)
-        };
 
         // Bind event handlers so they are only bound once for every instance.
         this._onVideoPlaying = this._onVideoPlaying.bind(this);
-    }
-
-    /**
-     * Implements React's {@link Component#componentWillReceiveProps()}.
-     *
-     * @inheritdoc
-     * @param {Object} nextProps - The read-only props which this Component will
-     * receive.
-     * @returns {void}
-     */
-    componentWillReceiveProps(nextProps) {
-        const oldValue = this.state.videoTrack;
-        const newValue = _falsy2null(nextProps.videoTrack);
-
-        if (oldValue !== newValue) {
-            this._setVideoTrack(newValue);
-        }
     }
 
     /**
@@ -85,10 +75,10 @@ export default class AbstractVideoTrack extends Component {
      * @returns {ReactElement}
      */
     render() {
-        const { videoTrack } = this.state;
+        const videoTrack = _falsy2null(this.props.videoTrack);
         let render;
 
-        if (this.props.waitForVideoStarted) {
+        if (this.props.waitForVideoStarted && videoTrack) {
             // That's the complex case: we have to wait for onPlaying before we
             // render videoTrack. The complexity comes from the fact that
             // onPlaying will come after we render videoTrack.
@@ -110,14 +100,15 @@ export default class AbstractVideoTrack extends Component {
             render = shouldRenderVideoTrack(videoTrack, false);
         }
 
-        const stream
-            = render ? videoTrack.jitsiTrack.getOriginalStream() : null;
+        const stream = render && videoTrack
+            ? videoTrack.jitsiTrack.getOriginalStream() : null;
 
         // Actual zoom is currently only enabled if the stream is a desktop
         // stream.
         const zoomEnabled
             = this.props.zoomEnabled
                 && stream
+                && videoTrack
                 && videoTrack.videoType === 'desktop';
 
         return (
@@ -131,6 +122,8 @@ export default class AbstractVideoTrack extends Component {
         );
     }
 
+    _onVideoPlaying: () => void;
+
     /**
      * Handler for case when video starts to play.
      *
@@ -143,18 +136,6 @@ export default class AbstractVideoTrack extends Component {
         if (videoTrack && !videoTrack.videoStarted) {
             this.props.dispatch(trackVideoStarted(videoTrack.jitsiTrack));
         }
-    }
-
-    /**
-     * Sets a specific video track to be rendered by this instance.
-     *
-     * @param {Track} videoTrack - The video track to be rendered by this
-     * instance.
-     * @protected
-     * @returns {void}
-     */
-    _setVideoTrack(videoTrack) {
-        this.setState({ videoTrack });
     }
 }
 

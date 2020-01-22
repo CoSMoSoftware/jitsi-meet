@@ -1,6 +1,11 @@
 // @flow
 
-import { appNavigate } from '../app';
+import type { Dispatch } from 'redux';
+
+import {
+    appNavigate,
+    maybeRedirectToWelcomePage
+} from '../app';
 import {
     conferenceLeft,
     JITSI_CONFERENCE_URL_KEY,
@@ -8,6 +13,8 @@ import {
 } from '../base/conference';
 import { hideDialog, openDialog } from '../base/dialog';
 import { PasswordRequiredPrompt, RoomLockPrompt } from './components';
+
+declare var APP: Object;
 
 /**
  * Begins a (user) request to lock a specific conference/room.
@@ -23,7 +30,11 @@ export function beginRoomLockRequest(conference: ?Object) {
             conference = getState()['features/base/conference'].conference;
         }
         if (conference) {
-            dispatch(openDialog(RoomLockPrompt, { conference }));
+            const passwordNumberOfDigits = getState()['features/base/config'].roomPasswordNumberOfDigits;
+
+            dispatch(openDialog(RoomLockPrompt, {
+                conference,
+                passwordNumberOfDigits }));
         }
     };
 }
@@ -37,7 +48,17 @@ export function beginRoomLockRequest(conference: ?Object) {
  * @returns {Function}
  */
 export function _cancelPasswordRequiredPrompt(conference: Object) {
-    return (dispatch: Dispatch<*>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
+
+        if (typeof APP !== 'undefined') {
+            // when we are redirecting the library should handle any
+            // unload and clean of the connection.
+            APP.API.notifyReadyToClose();
+            dispatch(maybeRedirectToWelcomePage());
+
+            return;
+        }
+
         // Canceling PasswordRequiredPrompt is to navigate the app/user to
         // WelcomePage. In other words, the canceling invalidates the
         // locationURL. Make sure that the canceling indeed has the intent to
@@ -105,7 +126,7 @@ export function _openPasswordRequiredPrompt(conference: Object) {
  * @returns {Function}
  */
 export function unlockRoom() {
-    return (dispatch: Dispatch<Function>, getState: Function) => {
+    return (dispatch: Dispatch<any>, getState: Function) => {
         const { conference } = getState()['features/base/conference'];
 
         return dispatch(setPassword(

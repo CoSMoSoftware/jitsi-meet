@@ -135,7 +135,8 @@ server {
     location / {
         ssi on;
     }
-    # BOSH
+    # BOSH, Bidirectional-streams Over Synchronous HTTP
+    # https://en.wikipedia.org/wiki/BOSH_(protocol)
     location /http-bind {
         proxy_pass      http://localhost:5280/http-bind;
         proxy_set_header X-Forwarded-For $remote_addr;
@@ -158,7 +159,7 @@ unzip jitsi-videobridge-linux-{arch-buildnum}.zip
 
 Install JRE if missing:
 ```
-apt-get install default-jre
+apt-get install openjdk-8-jre
 ```
 
 _NOTE: When installing on older Debian releases keep in mind that you need JRE >= 1.7._
@@ -181,7 +182,7 @@ Or autostart it by adding the line in `/etc/rc.local`:
 
 Install JDK and Maven if missing:
 ```
-apt-get install default-jdk maven
+apt-get install openjdk-8-jdk maven
 ```
 
 _NOTE: When installing on older Debian releases keep in mind that you need JDK >= 1.7._
@@ -209,6 +210,7 @@ Checkout and configure Jitsi Meet:
 cd /srv
 git clone https://github.com/jitsi/jitsi-meet.git
 mv jitsi-meet/ jitsi.example.com
+cd jitsi.example.com
 npm install
 make
 ```
@@ -235,19 +237,12 @@ invoke-rc.d nginx restart
 ```
 
 ## Running behind NAT
-Jitsi-Videobridge can run behind a NAT, provided that all required ports are routed (forwarded) to the machine that it runs on. By default these ports are (TCP/443 or TCP/4443 and UDP 10000-20000).
+Jitsi-Videobridge can run behind a NAT, provided that all required ports are routed (forwarded) to the machine that it runs on. By default these ports are (TCP/443 or TCP/4443 and UDP 10000).
 
 The following extra lines need to be added the file `~/.sip-communicator/sip-communicator.properties` (in the home directory of the user running the videobridge):
 ```
-org.jitsi.videobridge.NAT_HARVESTER_LOCAL_ADDRESS=<Local.IP.Address>
-org.jitsi.videobridge.NAT_HARVESTER_PUBLIC_ADDRESS=<Public.IP.Address>
-```
-
-So the file should look like this at the end:
-```
-org.jitsi.impl.neomedia.transform.srtp.SRTPCryptoContext.checkReplay=false
-org.jitsi.videobridge.NAT_HARVESTER_LOCAL_ADDRESS=<Local.IP.Address>
-org.jitsi.videobridge.NAT_HARVESTER_PUBLIC_ADDRESS=<Public.IP.Address>
+org.ice4j.ice.harvest.NAT_HARVESTER_LOCAL_ADDRESS=<Local.IP.Address>
+org.ice4j.ice.harvest.NAT_HARVESTER_PUBLIC_ADDRESS=<Public.IP.Address>
 ```
 
 # Hold your first conference

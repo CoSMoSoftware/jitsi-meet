@@ -1,6 +1,16 @@
 // @flow
 
 /**
+ * Action type to signal the deletion of a list entry.
+ *
+ * {
+ *     type: DELETE_RECENT_LIST_ENTRY,
+ *     entryId: Object
+ * }
+ */
+export const DELETE_RECENT_LIST_ENTRY = 'DELETE_RECENT_LIST_ENTRY';
+
+/**
  * Action type to signal a new addition to the list.
  *
  * {
@@ -10,7 +20,7 @@
  *
  * @protected
  */
-export const _STORE_CURRENT_CONFERENCE = Symbol('_STORE_CURRENT_CONFERENCE');
+export const _STORE_CURRENT_CONFERENCE = '_STORE_CURRENT_CONFERENCE';
 
 /**
  * Action type to signal that a new conference duration info is available.
@@ -23,4 +33,4 @@ export const _STORE_CURRENT_CONFERENCE = Symbol('_STORE_CURRENT_CONFERENCE');
  * @protected
  */
 export const _UPDATE_CONFERENCE_DURATION
-    = Symbol('_UPDATE_CONFERENCE_DURATION');
+    = '_UPDATE_CONFERENCE_DURATION';

@@ -1,38 +1,51 @@
 // @flow
 
 import React from 'react';
-import {
-    Alert,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    Switch,
-    Text,
-    TextInput,
-    View
-} from 'react-native';
-import { connect } from 'react-redux';
+import { Alert, NativeModules, SafeAreaView, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 
+import { ColorSchemeRegistry } from '../../../base/color-scheme';
 import { translate } from '../../../base/i18n';
-import { Header } from '../../../base/react';
+import { HeaderWithNavigation, Modal } from '../../../base/react';
+import { connect } from '../../../base/redux';
 
 import {
     AbstractSettingsView,
-    _mapStateToProps
+    _mapStateToProps as _abstractMapStateToProps,
+    type Props as AbstractProps
 } from '../AbstractSettingsView';
 import { setSettingsViewVisible } from '../../actions';
-import BackButton from './BackButton';
 import FormRow from './FormRow';
 import FormSectionHeader from './FormSectionHeader';
 import { normalizeUserInputURL } from '../../functions';
 import styles from './styles';
 
 /**
+ * Application information module.
+ */
+const { AppInfo } = NativeModules;
+
+type Props = AbstractProps & {
+
+    /**
+     * Color schemed style of the header component.
+     */
+    _headerStyles: Object
+}
+
+type State = {
+
+    /**
+     * Whether to show advanced settings or not.
+     */
+    showAdvanced: boolean
+}
+
+/**
  * The native container rendering the app settings page.
  *
  * @extends AbstractSettingsView
  */
-class SettingsView extends AbstractSettingsView {
+class SettingsView extends AbstractSettingsView<Props, State> {
     _urlField: Object;
 
     /**
@@ -43,9 +56,16 @@ class SettingsView extends AbstractSettingsView {
     constructor(props) {
         super(props);
 
+        this.state = {
+            showAdvanced: false
+        };
+
         // Bind event handlers so they are only bound once per instance.
         this._onBlurServerURL = this._onBlurServerURL.bind(this);
+        this._onDisableCallIntegration = this._onDisableCallIntegration.bind(this);
+        this._onDisableP2P = this._onDisableP2P.bind(this);
         this._onRequestClose = this._onRequestClose.bind(this);
+        this._onShowAdvanced = this._onShowAdvanced.bind(this);
         this._setURLFieldReference = this._setURLFieldReference.bind(this);
         this._showURLAlert = this._showURLAlert.bind(this);
     }
@@ -59,15 +79,10 @@ class SettingsView extends AbstractSettingsView {
     render() {
         return (
             <Modal
-                animationType = 'slide'
                 onRequestClose = { this._onRequestClose }
-                presentationStyle = 'fullScreen'
-                supportedOrientations = { [
-                    'landscape',
-                    'portrait'
-                ] }
+                presentationStyle = 'overFullScreen'
                 visible = { this.props._visible }>
-                <View style = { Header.pageStyle }>
+                <View style = { this.props._headerStyles.page }>
                     { this._renderHeader() }
                     { this._renderBody() }
                 </View>
@@ -94,6 +109,38 @@ class SettingsView extends AbstractSettingsView {
 
     _onChangeServerURL: (string) => void;
 
+    _onDisableCallIntegration: (boolean) => void;
+
+    /**
+     * Handles the disable call integration change event.
+     *
+     * @param {boolean} newValue - The new value
+     * option.
+     * @private
+     * @returns {void}
+     */
+    _onDisableCallIntegration(newValue) {
+        this._updateSettings({
+            disableCallIntegration: newValue
+        });
+    }
+
+    _onDisableP2P: (boolean) => void;
+
+    /**
+     * Handles the disable P2P change event.
+     *
+     * @param {boolean} newValue - The new value
+     * option.
+     * @private
+     * @returns {void}
+     */
+    _onDisableP2P(newValue) {
+        this._updateSettings({
+            disableP2P: newValue
+        });
+    }
+
     _onRequestClose: () => void;
 
     /**
@@ -103,7 +150,19 @@ class SettingsView extends AbstractSettingsView {
      * @returns {void}
      */
     _onRequestClose() {
+        this.setState({ showAdvanced: false });
         this._processServerURL(true /* hideOnSuccess */);
+    }
+
+    _onShowAdvanced: () => void;
+
+    /**
+     * Handles the advanced settings button.
+     *
+     * @returns {void}
+     */
+    _onShowAdvanced() {
+        this.setState({ showAdvanced: !this.state.showAdvanced });
     }
 
     _onStartAudioMutedChange: (boolean) => void;
@@ -131,6 +190,48 @@ class SettingsView extends AbstractSettingsView {
                 this.props.dispatch(setSettingsViewVisible(false));
             }
         }
+    }
+
+    /**
+     * Renders the advanced settings options.
+     *
+     * @private
+     * @returns {React$Element}
+     */
+    _renderAdvancedSettings() {
+        const { _settings } = this.props;
+        const { showAdvanced } = this.state;
+
+        if (!showAdvanced) {
+            return (
+                <FormRow
+                    fieldSeparator = { true }
+                    label = 'settingsView.showAdvanced'>
+                    <Switch
+                        onValueChange = { this._onShowAdvanced }
+                        value = { showAdvanced } />
+                </FormRow>
+            );
+        }
+
+        return (
+            <>
+                <FormRow
+                    fieldSeparator = { true }
+                    label = 'settingsView.disableCallIntegration'>
+                    <Switch
+                        onValueChange = { this._onDisableCallIntegration }
+                        value = { _settings.disableCallIntegration } />
+                </FormRow>
+                <FormRow
+                    fieldSeparator = { true }
+                    label = 'settingsView.disableP2P'>
+                    <Switch
+                        onValueChange = { this._onDisableP2P }
+                        value = { _settings.disableP2P } />
+                </FormRow>
+            </>
+        );
     }
 
     /**
@@ -190,6 +291,17 @@ class SettingsView extends AbstractSettingsView {
                             onValueChange = { this._onStartVideoMutedChange }
                             value = { _settings.startWithVideoMuted } />
                     </FormRow>
+                    <FormSectionHeader
+                        label = 'settingsView.buildInfoSection' />
+                    <FormRow
+                        label = 'settingsView.version'>
+                        <Text>
+                            { `${AppInfo.version} build ${AppInfo.buildNumber}` }
+                        </Text>
+                    </FormRow>
+                    <FormSectionHeader
+                        label = 'settingsView.advanced' />
+                    { this._renderAdvancedSettings() }
                 </ScrollView>
             </SafeAreaView>
         );
@@ -203,16 +315,9 @@ class SettingsView extends AbstractSettingsView {
      */
     _renderHeader() {
         return (
-            <Header>
-                <BackButton onPress = { this._onRequestClose } />
-                <Text
-                    style = { [
-                        styles.text,
-                        Header.textStyle
-                    ] }>
-                    { this.props.t('settingsView.header') }
-                </Text>
-            </Header>
+            <HeaderWithNavigation
+                headerLabelKey = 'settingsView.header'
+                onPressBack = { this._onRequestClose } />
         );
     }
 
@@ -250,6 +355,23 @@ class SettingsView extends AbstractSettingsView {
             ]
         );
     }
+
+    _updateSettings: (Object) => void;
+}
+
+/**
+ * Maps part of the Redux state to the props of this component.
+ *
+ * @param {Object} state - The Redux state.
+ * @returns {{
+ *     _headerStyles: Object
+ * }}
+ */
+function _mapStateToProps(state) {
+    return {
+        ..._abstractMapStateToProps(state),
+        _headerStyles: ColorSchemeRegistry.get(state, 'Header')
+    };
 }
 
 export default translate(connect(_mapStateToProps)(SettingsView));

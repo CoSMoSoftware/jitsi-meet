@@ -1,5 +1,5 @@
 import React from 'react';
-import { translate as reactI18nextTranslate } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 
 /**
  * Wraps a specific React Component in order to enable translations in it.
@@ -10,9 +10,7 @@ import { translate as reactI18nextTranslate } from 'react-i18next';
  */
 export function translate(component) {
     // Use the default list of namespaces.
-    return (
-        reactI18nextTranslate([ 'main', 'languages' ], { wait: true })(
-            component));
+    return withTranslation([ 'main', 'languages', 'countries' ])(component);
 }
 
 /**

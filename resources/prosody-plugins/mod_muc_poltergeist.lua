@@ -4,6 +4,13 @@ local jid = require "util.jid";
 local neturl = require "net.url";
 local parse = neturl.parseQuery;
 local poltergeist = module:require "poltergeist";
+
+local have_async = pcall(require, "util.async");
+if not have_async then
+    module:log("error", "requires a version of Prosody with util.async");
+    return;
+end
+
 local wrap_async_run = module:require "util".wrap_async_run;
 
 -- Options
@@ -100,7 +107,7 @@ prosody.events.add_handler("pre-jitsi-authentication", function(session)
     if (session.jitsi_meet_context_user) then
         local room = get_room(
             session.jitsi_bosh_query_room,
-            session.jitsi_meet_domain);
+            session.jitsi_bosh_query_prefix);
 
         if (not room) then
             return nil;

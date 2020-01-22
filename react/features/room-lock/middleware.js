@@ -2,20 +2,25 @@
 
 import {
     CONFERENCE_FAILED,
+    CONFERENCE_JOINED,
     LOCK_STATE_CHANGED,
     SET_PASSWORD_FAILED
 } from '../base/conference';
 import { hideDialog } from '../base/dialog';
 import { JitsiConferenceErrors } from '../base/lib-jitsi-meet';
 import { MiddlewareRegistry } from '../base/redux';
+import {
+    NOTIFICATION_TIMEOUT,
+    showNotification
+} from '../notifications';
 import UIEvents from '../../../service/UI/UIEvents';
 
 import { _openPasswordRequiredPrompt } from './actions';
 import { PasswordRequiredPrompt, RoomLockPrompt } from './components';
+import { LOCKED_REMOTELY } from './constants';
+import logger from './logger';
 
 declare var APP: Object;
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * Middleware that captures conference failed and checks for password required
@@ -29,20 +34,61 @@ MiddlewareRegistry.register(store => next => action => {
     case CONFERENCE_FAILED:
         return _conferenceFailed(store, next, action);
 
-    case LOCK_STATE_CHANGED:
+    case CONFERENCE_JOINED:
+        return _conferenceJoined(store, next, action);
+
+    case LOCK_STATE_CHANGED: {
         // TODO Remove this logic when all components interested in the lock
         // state change event are moved into react/redux.
         if (typeof APP !== 'undefined') {
             APP.UI.emitEvent(UIEvents.TOGGLE_ROOM_LOCK, action.locked);
         }
-        break;
 
+        const previousLockedState = store.getState()['features/base/conference'].locked;
+
+        const result = next(action);
+
+        const currentLockedState = store.getState()['features/base/conference'].locked;
+
+        if (currentLockedState === LOCKED_REMOTELY) {
+            store.dispatch(
+                showNotification({
+                    titleKey: 'notify.passwordSetRemotely'
+                }, NOTIFICATION_TIMEOUT));
+        } else if (previousLockedState === LOCKED_REMOTELY && !currentLockedState) {
+            store.dispatch(
+                showNotification({
+                    titleKey: 'notify.passwordRemovedRemotely'
+                }, NOTIFICATION_TIMEOUT));
+        }
+
+        return result;
+    }
     case SET_PASSWORD_FAILED:
         return _setPasswordFailed(store, next, action);
     }
 
     return next(action);
 });
+
+/**
+ * Handles cleanup of lock prompt state when a conference is joined.
+ *
+ * @param {Store} store - The redux store in which the specified action is being
+ * dispatched.
+ * @param {Dispatch} next - The redux {@code dispatch} function to dispatch the
+ * specified action to the specified store.
+ * @param {Action} action - The redux action {@code CONFERENCE_JOINED} which
+ * specifies the details associated with joining the conference.
+ * @private
+ * @returns {*}
+ */
+function _conferenceJoined({ dispatch }, next, action) {
+    dispatch(hideDialog(PasswordRequiredPrompt));
+    dispatch(hideDialog(RoomLockPrompt));
+
+    return next(action);
+}
 
 /**
  * Handles errors that occur when a conference fails.

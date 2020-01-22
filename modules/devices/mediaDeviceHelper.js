@@ -1,6 +1,15 @@
 /* global APP, JitsiMeetJS */
 
-import { getAudioOutputDeviceId } from '../../react/features/base/devices';
+import {
+    getAudioOutputDeviceId,
+    notifyCameraError,
+    notifyMicError
+} from '../../react/features/base/devices';
+import {
+    getUserSelectedCameraDeviceId,
+    getUserSelectedMicDeviceId,
+    getUserSelectedOutputDeviceId
+} from '../../react/features/base/settings';
 
 /**
  * Determines if currently selected audio output device should be changed after
@@ -25,6 +34,16 @@ function getNewAudioOutputDevice(newDevices) {
             d.deviceId === selectedAudioOutputDeviceId)) {
         return 'default';
     }
+
+    const preferredAudioOutputDeviceId = getUserSelectedOutputDeviceId(APP.store.getState());
+
+    // if the preferred one is not the selected and is available in the new devices
+    // we want to use it as it was just added
+    if (preferredAudioOutputDeviceId
+        && preferredAudioOutputDeviceId !== selectedAudioOutputDeviceId
+        && availableAudioOutputDevices.find(d => d.deviceId === preferredAudioOutputDeviceId)) {
+        return preferredAudioOutputDeviceId;
+    }
 }
 
 /**
@@ -38,8 +57,7 @@ function getNewAudioOutputDevice(newDevices) {
 function getNewAudioInputDevice(newDevices, localAudio) {
     const availableAudioInputDevices = newDevices.filter(
         d => d.kind === 'audioinput');
-    const settings = APP.store.getState()['features/base/settings'];
-    const selectedAudioInputDeviceId = settings.micDeviceId;
+    const selectedAudioInputDeviceId = getUserSelectedMicDeviceId(APP.store.getState());
     const selectedAudioInputDevice = availableAudioInputDevices.find(
         d => d.deviceId === selectedAudioInputDeviceId);
 
@@ -50,7 +68,9 @@ function getNewAudioInputDevice(newDevices, localAudio) {
         // If we have new audio device and permission to use it was granted
         // (label is not an empty string), then we will try to use the first
         // available device.
-        if (availableAudioInputDevices.length
+        if (selectedAudioInputDevice && selectedAudioInputDeviceId) {
+            return selectedAudioInputDeviceId;
+        } else if (availableAudioInputDevices.length
             && availableAudioInputDevices[0].label !== '') {
             return availableAudioInputDevices[0].deviceId;
         }
@@ -75,8 +95,7 @@ function getNewAudioInputDevice(newDevices, localAudio) {
 function getNewVideoInputDevice(newDevices, localVideo) {
     const availableVideoInputDevices = newDevices.filter(
         d => d.kind === 'videoinput');
-    const settings = APP.store.getState()['features/base/settings'];
-    const selectedVideoInputDeviceId = settings.cameraDeviceId;
+    const selectedVideoInputDeviceId = getUserSelectedCameraDeviceId(APP.store.getState());
     const selectedVideoInputDevice = availableVideoInputDevices.find(
         d => d.deviceId === selectedVideoInputDeviceId);
 
@@ -87,7 +106,9 @@ function getNewVideoInputDevice(newDevices, localVideo) {
         // If we have new video device and permission to use it was granted
         // (label is not an empty string), then we will try to use the first
         // available device.
-        if (availableVideoInputDevices.length
+        if (selectedVideoInputDevice && selectedVideoInputDeviceId) {
+            return selectedVideoInputDeviceId;
+        } else if (availableVideoInputDevices.length
             && availableVideoInputDevices[0].label !== '') {
             return availableVideoInputDevices[0].deviceId;
         }
@@ -121,8 +142,7 @@ export default {
             localAudio) {
         return {
             audioinput: getNewAudioInputDevice(newDevices, localAudio),
-            videoinput: !isSharingScreen
-                && getNewVideoInputDevice(newDevices, localVideo),
+            videoinput: isSharingScreen ? undefined : getNewVideoInputDevice(newDevices, localVideo),
             audiooutput: getNewAudioOutputDevice(newDevices)
         };
     },
@@ -160,11 +180,11 @@ export default {
                 ]))
                 .then(tracks => {
                     if (audioTrackError) {
-                        APP.UI.showMicErrorNotification(audioTrackError);
+                        APP.store.dispatch(notifyMicError(audioTrackError));
                     }
 
                     if (videoTrackError) {
-                        APP.UI.showCameraErrorNotification(videoTrackError);
+                        APP.store.dispatch(notifyCameraError(videoTrackError));
                     }
 
                     return tracks.filter(t => typeof t !== 'undefined');
@@ -180,7 +200,7 @@ export default {
         /**
          *
          */
-        function createAudioTrack(showError) {
+        function createAudioTrack(showError = true) {
             return (
                 createLocalTracks({
                     devices: [ 'audio' ],
@@ -189,7 +209,7 @@ export default {
                 })
                 .catch(err => {
                     audioTrackError = err;
-                    showError && APP.UI.showMicErrorNotification(err);
+                    showError && APP.store.disptach(notifyMicError(err));
 
                     return [];
                 }));
@@ -198,7 +218,7 @@ export default {
         /**
          *
          */
-        function createVideoTrack(showError) {
+        function createVideoTrack(showError = true) {
             return (
                 createLocalTracks({
                     devices: [ 'video' ],
@@ -207,7 +227,7 @@ export default {
                 })
                 .catch(err => {
                     videoTrackError = err;
-                    showError && APP.UI.showCameraErrorNotification(err);
+                    showError && APP.store.dispatch(notifyCameraError(err));
 
                     return [];
                 }));

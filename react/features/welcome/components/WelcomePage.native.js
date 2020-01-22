@@ -8,22 +8,29 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import Permissions from 'react-native-permissions';
-import { connect } from 'react-redux';
 
+import { getName } from '../../app';
+
+import { ColorSchemeRegistry } from '../../base/color-scheme';
 import { translate } from '../../base/i18n';
-import { Icon } from '../../base/font-icons';
+import { Icon, IconMenu } from '../../base/icons';
 import { MEDIA_TYPE } from '../../base/media';
 import { Header, LoadingIndicator, Text } from '../../base/react';
+import { connect } from '../../base/redux';
 import { ColorPalette } from '../../base/styles';
 import {
     createDesiredLocalTracks,
     destroyLocalTracks
 } from '../../base/tracks';
+import { DialInSummary } from '../../invite';
 import { SettingsView } from '../../settings';
 
-import { AbstractWelcomePage, _mapStateToProps } from './AbstractWelcomePage';
 import { setSideBarVisible } from '../actions';
+
+import {
+    AbstractWelcomePage,
+    _mapStateToProps as _abstractMapStateToProps
+} from './AbstractWelcomePage';
 import LocalVideoTrackUnderlay from './LocalVideoTrackUnderlay';
 import styles, { PLACEHOLDER_TEXT_COLOR } from './styles';
 import VideoSwitch from './VideoSwitch';
@@ -58,15 +65,15 @@ class WelcomePage extends AbstractWelcomePage {
     }
 
     /**
-     * Implements React's {@link Component#componentWillMount()}. Invoked
-     * immediately before mounting occurs. Creates a local video track if none
+     * Implements React's {@link Component#componentDidMount()}. Invoked
+     * immediately after mounting occurs. Creates a local video track if none
      * is available and the camera permission was already granted.
      *
      * @inheritdoc
      * @returns {void}
      */
-    componentWillMount() {
-        super.componentWillMount();
+    componentDidMount() {
+        super.componentDidMount();
 
         const { dispatch } = this.props;
 
@@ -76,8 +83,8 @@ class WelcomePage extends AbstractWelcomePage {
             // Make sure we don't request the permission for the camera from
             // the start. We will, however, create a video track iff the user
             // already granted the permission.
-            Permissions.check('camera').then(response => {
-                response === 'authorized'
+            navigator.permissions.query({ name: 'camera' }).then(response => {
+                response === 'granted'
                     && dispatch(createDesiredLocalTracks(MEDIA_TYPE.VIDEO));
             });
         }
@@ -91,52 +98,22 @@ class WelcomePage extends AbstractWelcomePage {
      * @returns {ReactElement}
      */
     render() {
-        const { buttonStyle, pageStyle } = Header;
-        const roomnameAccLabel = 'welcomepage.accessibilityLabel.roomname';
-        const { t } = this.props;
+        // We want to have the welcome page support the reduced UI layout,
+        // but we ran into serious issues enabling it so we disable it
+        // until we have a proper fix in place. We leave the code here though, because
+        // this part should be fine when the bug is fixed.
+        //
+        // NOTE: when re-enabling, don't forget to uncomment the respective _mapStateToProps line too
 
-        return (
-            <LocalVideoTrackUnderlay style = { styles.welcomePage }>
-                <View style = { pageStyle }>
-                    <Header style = { styles.header }>
-                        <TouchableOpacity onPress = { this._onShowSideBar } >
-                            <Icon
-                                name = 'menu'
-                                style = { buttonStyle } />
-                        </TouchableOpacity>
-                        <VideoSwitch />
-                    </Header>
-                    <SafeAreaView style = { styles.roomContainer } >
-                        <View style = { styles.joinControls } >
-                            <TextInput
-                                accessibilityLabel = { t(roomnameAccLabel) }
-                                autoCapitalize = 'none'
-                                autoComplete = { false }
-                                autoCorrect = { false }
-                                autoFocus = { false }
-                                onBlur = { this._onFieldBlur }
-                                onChangeText = { this._onRoomChange }
-                                onFocus = { this._onFieldFocus }
-                                onSubmitEditing = { this._onJoin }
-                                placeholder = { t('welcomepage.roomname') }
-                                placeholderTextColor = {
-                                    PLACEHOLDER_TEXT_COLOR
-                                }
-                                returnKeyType = { 'go' }
-                                style = { styles.textInput }
-                                underlineColorAndroid = 'transparent'
-                                value = { this.state.room } />
-                            {
-                                this._renderHintBox()
-                            }
-                        </View>
-                    </SafeAreaView>
-                    <WelcomePageLists disabled = { this.state._fieldFocused } />
-                    <SettingsView />
-                </View>
-                <WelcomePageSideBar />
-            </LocalVideoTrackUnderlay>
-        );
+        /*
+        const { _reducedUI } = this.props;
+
+        if (_reducedUI) {
+            return this._renderReducedUI();
+        }
+        */
+
+        return this._renderFullUI();
     }
 
     /**
@@ -230,7 +207,6 @@ class WelcomePage extends AbstractWelcomePage {
         const { t } = this.props;
         let children;
 
-        /* eslint-disable no-extra-parens */
 
         if (this.state.joining) {
             // TouchableHighlight is picky about what its children can be, so
@@ -251,7 +227,6 @@ class WelcomePage extends AbstractWelcomePage {
             );
         }
 
-        /* eslint-enable no-extra-parens */
 
         const buttonDisabled = this._isJoinDisabled();
 
@@ -270,6 +245,92 @@ class WelcomePage extends AbstractWelcomePage {
             </TouchableHighlight>
         );
     }
+
+    /**
+     * Renders the full welcome page.
+     *
+     * @returns {ReactElement}
+     */
+    _renderFullUI() {
+        const roomnameAccLabel = 'welcomepage.accessibilityLabel.roomname';
+        const { _headerStyles, t } = this.props;
+
+        return (
+            <LocalVideoTrackUnderlay style = { styles.welcomePage }>
+                <View style = { _headerStyles.page }>
+                    <Header style = { styles.header }>
+                        <TouchableOpacity onPress = { this._onShowSideBar } >
+                            <Icon
+                                src = { IconMenu }
+                                style = { _headerStyles.headerButtonIcon } />
+                        </TouchableOpacity>
+                        <VideoSwitch />
+                    </Header>
+                    <SafeAreaView style = { styles.roomContainer } >
+                        <View style = { styles.joinControls } >
+                            <TextInput
+                                accessibilityLabel = { t(roomnameAccLabel) }
+                                autoCapitalize = 'none'
+                                autoComplete = 'off'
+                                autoCorrect = { false }
+                                autoFocus = { false }
+                                onBlur = { this._onFieldBlur }
+                                onChangeText = { this._onRoomChange }
+                                onFocus = { this._onFieldFocus }
+                                onSubmitEditing = { this._onJoin }
+                                placeholder = { t('welcomepage.roomname') }
+                                placeholderTextColor = {
+                                    PLACEHOLDER_TEXT_COLOR
+                                }
+                                returnKeyType = { 'go' }
+                                style = { styles.textInput }
+                                underlineColorAndroid = 'transparent'
+                                value = { this.state.room } />
+                            {
+                                this._renderHintBox()
+                            }
+                        </View>
+                    </SafeAreaView>
+                    <WelcomePageLists disabled = { this.state._fieldFocused } />
+                    <SettingsView />
+                    <DialInSummary />
+                </View>
+                <WelcomePageSideBar />
+            </LocalVideoTrackUnderlay>
+        );
+    }
+
+    /**
+     * Renders a "reduced" version of the welcome page.
+     *
+     * @returns {ReactElement}
+     */
+    _renderReducedUI() {
+        const { t } = this.props;
+
+        return (
+            <View style = { styles.reducedUIContainer }>
+                <Text style = { styles.reducedUIText }>
+                    { t('welcomepage.reducedUIText', { app: getName() }) }
+                </Text>
+            </View>
+        );
+    }
+}
+
+/**
+ * Maps part of the Redux state to the props of this component.
+ *
+ * @param {Object} state - The Redux state.
+ * @returns {Object}
+ */
+function _mapStateToProps(state) {
+    return {
+        ..._abstractMapStateToProps(state),
+        _headerStyles: ColorSchemeRegistry.get(state, 'Header')
+
+        // _reducedUI: state['features/base/responsive-ui'].reducedUI
+    };
 }
 
 export default translate(connect(_mapStateToProps)(WelcomePage));

@@ -1,37 +1,37 @@
 // @flow
 
-import { NativeModules } from 'react-native';
-
 /**
- * The indicator which determines whether the calendar feature is enabled by the
- * app.
+ * An enumeration of support calendar integration types.
  *
- * @type {boolean}
+ * @enum {string}
  */
-export const CALENDAR_ENABLED = _isCalendarEnabled();
-
-/**
- * The default state of the calendar.
- *
- * NOTE: This is defined here, to be reusable by functions.js as well (see file
- * for details).
- */
-export const DEFAULT_STATE = {
-    authorization: undefined,
-    events: []
+export const CALENDAR_TYPE = {
+    GOOGLE: 'google',
+    MICROSOFT: 'microsoft'
 };
 
 /**
- * Determines whether the calendar feature is enabled by the app. For
- * example, Apple through its App Store requires
- * {@code NSCalendarsUsageDescription} in the app's Info.plist or App Store
- * rejects the app.
+ * An enumeration of known errors that can occur while interacting with the
+ * calendar integration.
  *
- * @returns {boolean} If the app has enabled the calendar feature, {@code true};
- * otherwise, {@code false}.
+ * @enum {string}
  */
-function _isCalendarEnabled() {
-    const { calendarEnabled } = NativeModules.AppInfo;
+export const ERRORS = {
+    AUTH_FAILED: 'sign_in_failed',
+    GOOGLE_APP_MISCONFIGURED: 'idpiframe_initialization_failed'
+};
 
-    return typeof calendarEnabled === 'undefined' ? true : calendarEnabled;
-}
+/**
+ * The number of days to fetch.
+ */
+export const FETCH_END_DAYS = 10;
+
+/**
+ * The number of days to go back when fetching.
+ */
+export const FETCH_START_DAYS = -1;
+
+/**
+ * The max number of events to fetch from the calendar.
+ */
+export const MAX_LIST_LENGTH = 10;

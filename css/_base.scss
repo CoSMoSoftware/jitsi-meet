@@ -33,6 +33,10 @@ body {
     }
 }
 
+.jitsi-icon svg {
+    fill: white;
+}
+
 /**
  * AtlasKitThemeProvider sets a background color on an app-wrapping div, thereby
  * preventing transparency in filmstrip-only mode. The selector chosen to
@@ -53,10 +57,6 @@ body, input, textarea, keygen, select, button {
 
 #nowebrtc {
     display:none;
-}
-
-.no-fa-video-camera, .fa-microphone-slash {
-    color: #636363;
 }
 
 button, input, select, textarea {
@@ -161,6 +161,7 @@ form {
 ::-webkit-scrollbar {
     background: transparent;
     width: 7px;
+    height: $scrollHeight;
 }
 
 ::-webkit-scrollbar-button {

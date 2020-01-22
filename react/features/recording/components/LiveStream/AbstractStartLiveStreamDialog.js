@@ -1,12 +1,11 @@
 // @flow
 
-import React, { Component } from 'react';
+import { Component } from 'react';
 
 import {
-    createRecordingDialogEvent,
+    createLiveStreamingDialogEvent,
     sendAnalytics
 } from '../../../analytics';
-import { Dialog } from '../../../base/dialog';
 import { JitsiRecordingConstants } from '../../../base/lib-jitsi-meet';
 
 /**
@@ -19,12 +18,6 @@ export type Props = {
      * The {@code JitsiConference} for the current conference.
      */
     _conference: Object,
-
-    /**
-     * The ID for the Google client application used for making stream key
-     * related requests.
-     */
-    _googleApiApplicationClientID: string,
 
     /**
      * The current state of interactions with the Google API. Determines what
@@ -91,8 +84,8 @@ export type State = {
  * but the abstraction of its properties are already present in this abstract
  * class.
  */
-export default class AbstractStartLiveStreamDialog
-    extends Component<Props, State> {
+export default class AbstractStartLiveStreamDialog<P: Props>
+    extends Component<P, State> {
     _isMounted: boolean;
 
     /**
@@ -100,7 +93,7 @@ export default class AbstractStartLiveStreamDialog
      *
      * @inheritdoc
      */
-    constructor(props: Props) {
+    constructor(props: P) {
         super(props);
 
         this.state = {
@@ -134,10 +127,6 @@ export default class AbstractStartLiveStreamDialog
      */
     componentDidMount() {
         this._isMounted = true;
-
-        if (this.props._googleApiApplicationClientID) {
-            this._onInitializeGoogleApi();
-        }
     }
 
     /**
@@ -150,27 +139,6 @@ export default class AbstractStartLiveStreamDialog
         this._isMounted = false;
     }
 
-    /**
-     * Implements {@code Component}'s render.
-     *
-     * @inheritdoc
-     */
-    render() {
-        return (
-            <Dialog
-                cancelTitleKey = 'dialog.Cancel'
-                okTitleKey = 'dialog.startLiveStreaming'
-                onCancel = { this._onCancel }
-                onSubmit = { this._onSubmit }
-                titleKey = 'liveStreaming.start'
-                width = { 'small' }>
-                {
-                    this._renderDialogContent()
-                }
-            </Dialog>
-        );
-    }
-
     _onCancel: () => boolean;
 
     /**
@@ -181,7 +149,7 @@ export default class AbstractStartLiveStreamDialog
      * @returns {boolean} True is returned to close the modal.
      */
     _onCancel() {
-        sendAnalytics(createRecordingDialogEvent('start', 'cancel.button'));
+        sendAnalytics(createLiveStreamingDialogEvent('start', 'cancel.button'));
 
         return true;
     }
@@ -197,13 +165,6 @@ export default class AbstractStartLiveStreamDialog
      */
     _onGetYouTubeBroadcasts: () => Promise<*>;
 
-    /**
-     * Loads the Google client application used for fetching stream keys.
-     * If the user is already logged in, then a request for available YouTube
-     * broadcasts is also made.
-     */
-    _onInitializeGoogleApi: () => Object;
-
     _onStreamKeyChange: string => void;
 
     /**
@@ -211,7 +172,6 @@ export default class AbstractStartLiveStreamDialog
      * display of the entered YouTube stream key.
      *
      * @param {string} streamKey - The stream key entered in the field.
-     * changed text.
      * @private
      * @returns {void}
      */
@@ -234,7 +194,8 @@ export default class AbstractStartLiveStreamDialog
      */
     _onSubmit() {
         const { broadcasts, selectedBoundStreamID } = this.state;
-        const key = this.state.streamKey || this.props._streamKey;
+        const key
+            = (this.state.streamKey || this.props._streamKey || '').trim();
 
         if (!key) {
             return false;
@@ -250,7 +211,7 @@ export default class AbstractStartLiveStreamDialog
         }
 
         sendAnalytics(
-            createRecordingDialogEvent('start', 'confirm.button'));
+            createLiveStreamingDialogEvent('start', 'confirm.button'));
 
         this.props._conference.startRecording({
             broadcastId: selectedBroadcastID,
@@ -275,13 +236,6 @@ export default class AbstractStartLiveStreamDialog
             this.setState(newState);
         }
     }
-
-    /**
-     * Renders the platform specific dialog content.
-     *
-     * @returns {React$Component}
-     */
-    _renderDialogContent: () => React$Component<*>
 }
 
 /**
@@ -290,15 +244,14 @@ export default class AbstractStartLiveStreamDialog
  * @param {Object} state - The Redux state.
  * @returns {{
  *     _conference: Object,
- *     _googleApiApplicationClientID: string,
+ *     _googleAPIState: number,
+ *     _googleProfileEmail: string,
  *     _streamKey: string
  * }}
  */
 export function _mapStateToProps(state: Object) {
     return {
         _conference: state['features/base/conference'].conference,
-        _googleApiApplicationClientID:
-            state['features/base/config'].googleApiApplicationClientID,
         _googleAPIState: state['features/google-api'].googleAPIState,
         _googleProfileEmail: state['features/google-api'].profileEmail,
         _streamKey: state['features/recording'].streamKey

@@ -1,9 +1,5 @@
-/* global interfaceConfig */
-
-import throttle from 'lodash/throttle';
-
 import { set } from '../redux';
-import { showNotification } from '../../notifications';
+import { NOTIFICATION_TIMEOUT, showNotification } from '../../notifications';
 
 import {
     DOMINANT_SPEAKER_CHANGED,
@@ -11,15 +7,19 @@ import {
     HIDDEN_PARTICIPANT_LEFT,
     KICK_PARTICIPANT,
     MUTE_REMOTE_PARTICIPANT,
-    PARTICIPANT_DISPLAY_NAME_CHANGED,
     PARTICIPANT_ID_CHANGED,
     PARTICIPANT_JOINED,
+    PARTICIPANT_KICKED,
     PARTICIPANT_LEFT,
     PARTICIPANT_UPDATED,
-    PIN_PARTICIPANT
+    PIN_PARTICIPANT,
+    SET_LOADABLE_AVATAR_URL
 } from './actionTypes';
-import { MAX_DISPLAY_NAME_LENGTH } from './constants';
-import { getLocalParticipant } from './functions';
+import {
+    getLocalParticipant,
+    getNormalizedDisplayName,
+    getParticipantDisplayName
+} from './functions';
 
 /**
  * Create an action for when dominant speaker changes.
@@ -209,29 +209,6 @@ export function participantConnectionStatusChanged(id, connectionStatus) {
 }
 
 /**
- * Action to signal that a participant's display name has changed.
- *
- * @param {string} id - The id of the participant being changed.
- * @param {string} displayName - The new display name.
- * @returns {{
- *     type: PARTICIPANT_DISPLAY_NAME_CHANGED,
- *     id: string,
- *     name: string
- * }}
- */
-export function participantDisplayNameChanged(id, displayName = '') {
-    // FIXME Do not use this action over participantUpdated. This action exists
-    // as a a bridge for local name updates. Once other components responsible
-    // for updating the local user's display name are in react/redux, this
-    // action should be replaceable with the participantUpdated action.
-    return {
-        type: PARTICIPANT_DISPLAY_NAME_CHANGED,
-        id,
-        name: displayName.substr(0, MAX_DISPLAY_NAME_LENGTH)
-    };
-}
-
-/**
  * Action to signal that a participant has joined.
  *
  * @param {Participant} participant - Information about participant.
@@ -393,9 +370,68 @@ export function participantRoleChanged(id, role) {
  * }}
  */
 export function participantUpdated(participant = {}) {
+    const participantToUpdate = {
+        ...participant
+    };
+
+    if (participant.name) {
+        participantToUpdate.name = getNormalizedDisplayName(participant.name);
+    }
+
     return {
         type: PARTICIPANT_UPDATED,
-        participant
+        participant: participantToUpdate
+    };
+}
+
+/**
+ * Action to signal that a participant has muted us.
+ *
+ * @param {JitsiParticipant} participant - Information about participant.
+ * @returns {Promise}
+ */
+export function participantMutedUs(participant) {
+    return (dispatch, getState) => {
+        if (!participant) {
+            return;
+        }
+
+        dispatch(showNotification({
+            descriptionKey: 'notify.mutedRemotelyDescription',
+            titleKey: 'notify.mutedRemotelyTitle',
+            titleArguments: {
+                participantDisplayName:
+                    getParticipantDisplayName(getState, participant.getId())
+            }
+        }));
+    };
+}
+
+/**
+ * Action to signal that a participant had been kicked.
+ *
+ * @param {JitsiParticipant} kicker - Information about participant performing the kick.
+ * @param {JitsiParticipant} kicked - Information about participant that was kicked.
+ * @returns {Promise}
+ */
+export function participantKicked(kicker, kicked) {
+    return (dispatch, getState) => {
+
+        dispatch({
+            type: PARTICIPANT_KICKED,
+            kicked: kicked.getId(),
+            kicker: kicker.getId()
+        });
+
+        dispatch(showNotification({
+            titleArguments: {
+                kicked:
+                    getParticipantDisplayName(getState, kicked.getId()),
+                kicker:
+                    getParticipantDisplayName(getState, kicker.getId())
+            },
+            titleKey: 'notify.kickParticipant'
+        }, NOTIFICATION_TIMEOUT * 2)); // leave more time for this
     };
 }
 
@@ -421,72 +457,24 @@ export function pinParticipant(id) {
 }
 
 /**
- * An array of names of participants that have joined the conference. The array
- * is replaced with an empty array as notifications are displayed.
+ * Creates an action which notifies the app that the loadable URL of the avatar of a participant got updated.
  *
- * @private
- * @type {string[]}
- */
-let joinedParticipantsNames = [];
-
-/**
- * A throttled internal function that takes the internal list of participant
- * names, {@code joinedParticipantsNames}, and triggers the display of a
- * notification informing of their joining.
- *
- * @private
- * @type {Function}
- */
-const _throttledNotifyParticipantConnected = throttle(dispatch => {
-    const joinedParticipantsCount = joinedParticipantsNames.length;
-
-    let notificationProps;
-
-    if (joinedParticipantsCount >= 3) {
-        notificationProps = {
-            titleArguments: {
-                name: joinedParticipantsNames[0],
-                count: joinedParticipantsCount - 1
-            },
-            titleKey: 'notify.connectedThreePlusMembers'
-        };
-    } else if (joinedParticipantsCount === 2) {
-        notificationProps = {
-            titleArguments: {
-                first: joinedParticipantsNames[0],
-                second: joinedParticipantsNames[1]
-            },
-            titleKey: 'notify.connectedTwoMembers'
-        };
-    } else if (joinedParticipantsCount) {
-        notificationProps = {
-            titleArguments: {
-                name: joinedParticipantsNames[0]
-            },
-            titleKey: 'notify.connectedOneMember'
-        };
-    }
-
-    if (notificationProps) {
-        dispatch(
-            showNotification(notificationProps, 2500));
-    }
-
-    joinedParticipantsNames = [];
-
-}, 500, { leading: false });
-
-/**
- * Queues the display of a notification of a participant having connected to
- * the meeting. The notifications are batched so that quick consecutive
- * connection events are shown in one notification.
- *
- * @param {string} displayName - The name of the participant that connected.
- * @returns {Function}
- */
-export function showParticipantJoinedNotification(displayName) {
-    joinedParticipantsNames.push(
-        displayName || interfaceConfig.DEFAULT_REMOTE_DISPLAY_NAME);
-
-    return dispatch => _throttledNotifyParticipantConnected(dispatch);
+ * @param {string} participantId - The ID of the participant.
+ * @param {string} url - The new URL.
+ * @returns {{
+ *     type: SET_LOADABLE_AVATAR_URL,
+ *     participant: {
+ *         id: string,
+ *         loadableAvatarUrl: string
+ *     }
+ * }}
+*/
+export function setLoadableAvatarUrl(participantId, url) {
+    return {
+        type: SET_LOADABLE_AVATAR_URL,
+        participant: {
+            id: participantId,
+            loadableAvatarUrl: url
+        }
+    };
 }

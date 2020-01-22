@@ -18,13 +18,18 @@ export const ColorPalette = {
      * the sake of consistency.
      */
     black: BLACK,
+    blackBlue: 'rgb(0, 3, 6)',
     blue: '#17A0DB',
     blueHighlight: '#1081b2',
     buttonUnderlay: '#495258',
     darkGrey: '#555555',
     green: '#40b183',
+    lightGrey: '#AAAAAA',
+    overflowMenuItemUnderlay: '#EEEEEE',
     red: '#D00000',
-    white: 'white',
+    transparent: 'rgba(0, 0, 0, 0)',
+    warning: 'rgb(215, 121, 118)',
+    white: '#FFFFFF',
 
     /**
      * These are colors from the atlaskit to be used on mobile, when needed.

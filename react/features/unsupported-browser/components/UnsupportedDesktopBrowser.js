@@ -1,12 +1,11 @@
 /* @flow */
 
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 
+import { isBrowsersOptimal } from '../../base/environment';
 import { translate } from '../../base/i18n';
-import { Platform } from '../../base/react';
 
-import { CHROME, EDGE, FIREFOX, SAFARI } from './browserLinks';
+import { CHROME, FIREFOX } from './browserLinks';
 
 /**
  * The namespace of the CSS styles of UnsupportedDesktopBrowser.
@@ -17,26 +16,23 @@ import { CHROME, EDGE, FIREFOX, SAFARI } from './browserLinks';
 const _SNS = 'unsupported-desktop-browser';
 
 /**
+ * The type of the React {@code Component} props of
+ * {@link UnsupportedDesktopBrowser}.
+ */
+type Props = {
+
+    /**
+     * The function to translate human-readable text.
+     */
+    t: Function
+};
+
+/**
  * React component representing unsupported browser page.
  *
  * @class UnsupportedDesktopBrowser
  */
-class UnsupportedDesktopBrowser extends Component<*> {
-    /**
-     * UnsupportedDesktopBrowser component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The function to translate human-readable text.
-         *
-         * @public
-         * @type {Function}
-         */
-        t: PropTypes.func
-    };
-
+class UnsupportedDesktopBrowser extends Component<Props> {
     /**
      * Renders the component.
      *
@@ -52,12 +48,11 @@ class UnsupportedDesktopBrowser extends Component<*> {
                     Please try again with the latest version of&nbsp;
                     <a
                         className = { `${_SNS}__link` }
-                        href = { CHROME } >Chrome</a>,&nbsp;
-                    <a
-                        className = { `${_SNS}__link` }
-                        href = { FIREFOX }>Firefox</a> or&nbsp;
+                        href = { CHROME } >Chrome</a>&nbsp;
                     {
-                        this._renderOSSpecificBrowserDownloadLink()
+                        this._showFirefox() && <>and <a
+                            className = { `${_SNS}__link` }
+                            href = { FIREFOX }>Firefox</a></>
                     }
                 </p>
             </div>
@@ -65,39 +60,13 @@ class UnsupportedDesktopBrowser extends Component<*> {
     }
 
     /**
-     * Depending on the platform returns the link to Safari browser.
+     * Returns whether or not a link to download Firefox is displayed.
      *
-     * @returns {ReactElement|null}
      * @private
+     * @returns {boolean}
      */
-    _renderOSSpecificBrowserDownloadLink() {
-        let link;
-        let text;
-
-        switch (Platform.OS) {
-        case 'macos':
-            link = SAFARI;
-            text = 'Safari';
-            break;
-
-        case 'windows':
-            link = EDGE;
-            text = 'Edge';
-            break;
-        }
-        if (typeof link !== 'undefined') {
-            return (
-                <a
-                    className = { `${_SNS}__link` }
-                    href = { link }>
-                    {
-                        text
-                    }
-                </a>
-            );
-        }
-
-        return null;
+    _showFirefox() {
+        return isBrowsersOptimal('firefox');
     }
 }
 

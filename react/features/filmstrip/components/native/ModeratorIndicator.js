@@ -1,12 +1,14 @@
-import React, { Component } from 'react';
-import Icon from 'react-native-vector-icons/FontAwesome';
+// @flow
 
-import styles from './styles';
+import React, { Component } from 'react';
+
+import { IconModerator } from '../../../base/icons';
+import { BaseIndicator } from '../../../base/react';
 
 /**
  * Thumbnail badge showing that the participant is a conference moderator.
  */
-export default class ModeratorIndicator extends Component {
+export default class ModeratorIndicator extends Component<{}> {
     /**
      * Implements React's {@link Component#render()}.
      *
@@ -14,9 +16,9 @@ export default class ModeratorIndicator extends Component {
      */
     render() {
         return (
-            <Icon
-                name = 'star'
-                style = { styles.moderatorIndicator } />
+            <BaseIndicator
+                highlight = { false }
+                icon = { IconModerator } />
         );
     }
 }

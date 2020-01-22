@@ -39,9 +39,10 @@ function _getCommonPrototype(a, b) {
 }
 
 /**
- * Implements an absolute minimum of the common logic of Document.querySelector
- * and Element.querySelector. Implements the most simple of selectors necessary
- * to satisfy the call sites at the time of this writing i.e. select by tagName.
+ * Implements an absolute minimum of the common logic of
+ * {@code Document.querySelector} and {@code Element.querySelector}. Implements
+ * the most simple of selectors necessary to satisfy the call sites at the time
+ * of this writing (i.e. Select by tagName).
  *
  * @param {Node} node - The Node which is the root of the tree to query.
  * @param {string} selectors - The group of CSS selectors to match on.
@@ -126,7 +127,6 @@ function _visitNode(node, callback) {
     //
     // Required by:
     // - jQuery
-    // - lib-jitsi-meet/modules/RTC/adapter.screenshare.js
     // - Strophe
     if (typeof global.document === 'undefined') {
         const document
@@ -149,14 +149,6 @@ function _visitNode(node, callback) {
         // - herment
         if (typeof document.cookie === 'undefined') {
             document.cookie = '';
-        }
-
-        // document.implementation
-        //
-        // Required by:
-        // - jQuery
-        if (typeof document.implementation === 'undefined') {
-            document.implementation = {};
         }
 
         // document.implementation.createHTMLDocument
@@ -362,26 +354,9 @@ function _visitNode(node, callback) {
     const { navigator } = global;
 
     if (navigator) {
-        // platform
-        //
-        // Required by:
-        // - lib-jitsi-meet/modules/RTC/adapter.screenshare.js
-        if (typeof navigator.platform === 'undefined') {
-            navigator.platform = '';
-        }
-
-        // plugins
-        //
-        // Required by:
-        // - lib-jitsi-meet/modules/RTC/adapter.screenshare.js
-        if (typeof navigator.plugins === 'undefined') {
-            navigator.plugins = [];
-        }
-
         // userAgent
         //
         // Required by:
-        // - lib-jitsi-meet/modules/RTC/adapter.screenshare.js
         // - lib-jitsi-meet/modules/browser/BrowserDetection.js
         let userAgent = navigator.userAgent || '';
 
@@ -406,7 +381,13 @@ function _visitNode(node, callback) {
 
     // WebRTC
     require('./polyfills-webrtc');
+
+    // CallStats
+    //
+    // Required by:
+    // - lib-jitsi-meet
     require('react-native-callstats/csio-polyfill');
+    global.callstats = require('react-native-callstats/callstats');
 
     // XMLHttpRequest
     if (global.XMLHttpRequest) {

@@ -1,13 +1,7 @@
 // @flow
 
+import { MD_ITEM_HEIGHT } from '../../../base/dialog';
 import { ColorPalette, createStyleSheet } from '../../../base/styles';
-
-/**
- * Underlay color for the buttons on the sheet.
- *
- * @type {string}
- */
-export const UNDERLAY_COLOR = '#eee';
 
 /**
  * The React {@code Component} styles of {@code AudioRoutePickerDialog}.
@@ -23,13 +17,14 @@ export default createStyleSheet({
     deviceRow: {
         alignItems: 'center',
         flexDirection: 'row',
-        height: 48
+        height: MD_ITEM_HEIGHT
     },
 
     /**
      * Style for the {@code Icon} element in a row.
      */
     deviceIcon: {
+        color: ColorPalette.white,
         fontSize: 24
     },
 
@@ -37,6 +32,7 @@ export default createStyleSheet({
      * Style for the {@code Text} element in a row.
      */
     deviceText: {
+        color: ColorPalette.white,
         fontSize: 16,
         marginLeft: 32
     },

@@ -1,28 +1,54 @@
 // @flow
 
+import { JitsiRecordingConstants } from '../base/lib-jitsi-meet';
+
+
 /**
- * The identifier of the sound to be played when a recording or live streaming
- * session is stopped.
+ * The identifier of the sound to be played when a live streaming session is stopped.
+ *
+ * @type {string}
+ */
+export const LIVE_STREAMING_OFF_SOUND_ID = 'LIVE_STREAMING_OFF_SOUND';
+
+/**
+ * The identifier of the sound to be played when a live streaming session is started.
+ *
+ * @type {string}
+ */
+export const LIVE_STREAMING_ON_SOUND_ID = 'LIVE_STREAMING_ON_SOUND';
+
+/**
+ * The identifier of the sound to be played when a recording session is stopped.
  *
  * @type {string}
  */
 export const RECORDING_OFF_SOUND_ID = 'RECORDING_OFF_SOUND';
 
 /**
- * The identifier of the sound to be played when a recording or live streaming
- * session is started.
+ * The identifier of the sound to be played when a recording session is started.
  *
  * @type {string}
  */
 export const RECORDING_ON_SOUND_ID = 'RECORDING_ON_SOUND';
 
 /**
- * Expected supported recording types. JIBRI is known to support live streaming
- * whereas JIRECON is for recording.
+ * Expected supported recording types.
  *
- * @type {Object}
+ * @enum {string}
  */
 export const RECORDING_TYPES = {
-    JIBRI: 'jibri',
-    JIRECON: 'jirecon'
+    JITSI_REC_SERVICE: 'recording-service',
+    DROPBOX: 'dropbox'
 };
+
+/**
+ * An array defining the priorities of the recording (or live streaming)
+ * statuses, where the index of the array is the priority itself.
+ *
+ * @type {Array<string>}
+ */
+export const RECORDING_STATUS_PRIORITIES = [
+    JitsiRecordingConstants.status.OFF,
+    JitsiRecordingConstants.status.PENDING,
+    JitsiRecordingConstants.status.ON
+];

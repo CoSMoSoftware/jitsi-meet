@@ -2,18 +2,18 @@
 
 import React, { Component } from 'react';
 import { SafeAreaView, ScrollView, Text } from 'react-native';
-import { connect } from 'react-redux';
 
+import { Avatar } from '../../base/avatar';
+import { IconInfo, IconSettings } from '../../base/icons';
 import {
-    Avatar,
-    getAvatarURL,
     getLocalParticipant,
     getParticipantDisplayName
 } from '../../base/participants';
 import {
     Header,
-    SideBar
+    SlidingView
 } from '../../base/react';
+import { connect } from '../../base/redux';
 import { setSettingsViewVisible } from '../../settings';
 
 import { setSideBarVisible } from '../actions';
@@ -43,14 +43,14 @@ type Props = {
     dispatch: Function,
 
     /**
-     * The avatar URL to be rendered.
-     */
-    _avatarURL: string,
-
-    /**
      * Display name of the local participant.
      */
-    _displayName: string,
+    _displayName: ?string,
+
+    /**
+     * ID of the local participant.
+     */
+    _localParticipantId: ?string,
 
     /**
      * Sets the side bar visible or hidden.
@@ -67,7 +67,7 @@ class WelcomePageSideBar extends Component<Props> {
      *
      * @inheritdoc
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
 
         // Bind event handlers so they are only bound once per instance.
@@ -83,14 +83,15 @@ class WelcomePageSideBar extends Component<Props> {
      */
     render() {
         return (
-            <SideBar
+            <SlidingView
                 onHide = { this._onHideSideBar }
-                show = { this.props._visible }>
+                position = 'left'
+                show = { this.props._visible }
+                style = { styles.sideBar } >
                 <Header style = { styles.sideBarHeader }>
                     <Avatar
-                        size = { SIDEBAR_AVATAR_SIZE }
-                        style = { styles.avatar }
-                        uri = { this.props._avatarURL } />
+                        participantId = { this.props._localParticipantId }
+                        size = { SIDEBAR_AVATAR_SIZE } />
                     <Text style = { styles.displayName }>
                         { this.props._displayName }
                     </Text>
@@ -99,31 +100,31 @@ class WelcomePageSideBar extends Component<Props> {
                     <ScrollView
                         style = { styles.itemContainer }>
                         <SideBarItem
-                            icon = 'settings'
+                            icon = { IconSettings }
                             label = 'settings.title'
                             onPress = { this._onOpenSettings } />
                         <SideBarItem
-                            icon = 'info'
+                            icon = { IconInfo }
                             label = 'welcomepage.terms'
                             url = { TERMS_URL } />
                         <SideBarItem
-                            icon = 'info'
+                            icon = { IconInfo }
                             label = 'welcomepage.privacy'
                             url = { PRIVACY_URL } />
                         <SideBarItem
-                            icon = 'info'
+                            icon = { IconInfo }
                             label = 'welcomepage.sendFeedback'
                             url = { SEND_FEEDBACK_URL } />
                     </ScrollView>
                 </SafeAreaView>
-            </SideBar>
+            </SlidingView>
         );
     }
 
     _onHideSideBar: () => void;
 
     /**
-     * Invoked when the sidebar has closed itself (e.g. overlay pressed).
+     * Invoked when the sidebar has closed itself (e.g. Overlay pressed).
      *
      * @private
      * @returns {void}
@@ -153,18 +154,16 @@ class WelcomePageSideBar extends Component<Props> {
  *
  * @param {Object} state - The redux state.
  * @protected
- * @returns {{
- *     _avatarURL: string,
- *     _displayName: string,
- *     _visible: boolean
- * }}
+ * @returns {Props}
  */
 function _mapStateToProps(state: Object) {
-    const localParticipant = getLocalParticipant(state);
+    const _localParticipant = getLocalParticipant(state);
+    const _localParticipantId = _localParticipant?.id;
+    const _displayName = _localParticipant && getParticipantDisplayName(state, _localParticipantId);
 
     return {
-        _avatarURL: getAvatarURL(localParticipant),
-        _displayName: getParticipantDisplayName(state, localParticipant.id),
+        _displayName,
+        _localParticipantId,
         _visible: state['features/welcome'].sideBarVisible
     };
 }

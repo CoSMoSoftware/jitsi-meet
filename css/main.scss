@@ -16,17 +16,12 @@
 
 /* Mixins END */
 
-/* Animations BEGIN */
-
-@import "animations";
-
 /* Animations END */
 
-/* Fonts BEGIN */
-
-@import 'font';
-@import 'font-awesome';
-/* Fonts END */
+/* Flags BEGIN */
+$flagsImagePath: "../images/";
+@import "../node_modules/bc-css-flags/dist/css/bc-css-flags.scss";
+/* Flags END */
 
 /* Modules BEGIN */
 
@@ -37,6 +32,7 @@
 @import 'overlay/overlay';
 @import 'inlay';
 @import 'reload_overlay/reload_overlay';
+@import 'mini_toolbox';
 @import 'modals/desktop-picker/desktop-picker';
 @import 'modals/device-selection/device-selection';
 @import 'modals/dialog';
@@ -45,8 +41,11 @@
 @import 'modals/settings/settings';
 @import 'modals/speaker_stats/speaker_stats';
 @import 'modals/video-quality/video-quality';
+@import 'modals/local-recording/local-recording';
 @import 'videolayout_default';
 @import 'notice';
+@import 'subject';
+@import 'participants-count';
 @import 'popup_menu';
 @import 'recording';
 @import 'login_menu';
@@ -54,8 +53,8 @@
 @import 'ringing/ringing';
 @import 'welcome_page';
 @import 'welcome_page_content';
+@import 'welcome_page_settings_toolbar';
 @import 'toolbars';
-@import 'side_toolbar_container';
 @import 'jquery.contextMenu';
 @import 'keyboard-shortcuts';
 @import 'redirect_page';
@@ -72,11 +71,19 @@
 @import 'filmstrip/filmstrip_toolbar';
 @import 'filmstrip/horizontal_filmstrip';
 @import 'filmstrip/small_video';
+@import 'filmstrip/tile_view';
+@import 'filmstrip/tile_view_overrides';
 @import 'filmstrip/vertical_filmstrip';
 @import 'filmstrip/vertical_filmstrip_overrides';
 @import 'unsupported-browser/main';
 @import 'modals/invite/add-people';
 @import 'deep-linking/main';
 @import 'transcription-subtitles';
+@import '_meetings_list.scss';
 @import 'navigate_section_list';
+@import 'third-party-branding/google';
+@import 'third-party-branding/microsoft';
+@import 'avatar';
+@import 'promotional-footer';
+
 /* Modules END */

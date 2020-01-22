@@ -1,9 +1,9 @@
 // @flow
 
-import { connect } from 'react-redux';
-
 import { translate } from '../../base/i18n';
+import { IconRoomLock, IconRoomUnlock } from '../../base/icons';
 import { isLocalParticipantModerator } from '../../base/participants';
+import { connect } from '../../base/redux';
 import { AbstractButton } from '../../base/toolbox';
 import type { AbstractButtonProps } from '../../base/toolbox';
 
@@ -33,9 +33,9 @@ type Props = AbstractButtonProps & {
  */
 class RoomLockButton extends AbstractButton<Props, *> {
     accessibilityLabel = 'toolbar.accessibilityLabel.lockRoom';
-    iconName = 'security';
+    icon = IconRoomLock;
     label = 'dialog.lockRoom';
-    toggledIconName = 'security-locked';
+    toggledIcon = IconRoomUnlock;
     toggledLabel = 'dialog.unlockRoom';
 
     /**

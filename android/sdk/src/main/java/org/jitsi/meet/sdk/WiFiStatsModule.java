@@ -19,13 +19,14 @@ package org.jitsi.meet.sdk;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.module.annotations.ReactModule;
 
+import org.jitsi.meet.sdk.log.JitsiMeetLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,19 +44,16 @@ import java.util.concurrent.Executors;
  * Gathers rssi, signal in percentage, timestamp and the addresses of the wifi
  * device.
  */
+@ReactModule(name = WiFiStatsModule.NAME)
 class WiFiStatsModule
     extends ReactContextBaseJavaModule {
 
-    /**
-     * The name of {@code WiFiStatsModule} to be used in the React Native
-     * bridge.
-     */
-    private static final String MODULE_NAME = "WiFiStats";
+    public static final String NAME = "WiFiStats";
 
     /**
      * The {@code Log} tag {@code WiFiStatsModule} is to log messages with.
      */
-    static final String TAG = MODULE_NAME;
+    static final String TAG = NAME;
 
     /**
      * The scale used for the signal value. A level of the signal, given in the
@@ -87,7 +85,7 @@ class WiFiStatsModule
      */
     @Override
     public String getName() {
-        return MODULE_NAME;
+        return NAME;
     }
 
     /**
@@ -146,8 +144,7 @@ class WiFiStatsModule
                     JSONObject result = new JSONObject();
                     result.put("rssi", rssi)
                         .put("signal", signalLevel)
-                        .put("timestamp",
-                                String.valueOf(System.currentTimeMillis()));
+                        .put("timestamp", System.currentTimeMillis());
 
                     JSONArray addresses = new JSONArray();
 
@@ -187,17 +184,15 @@ class WiFiStatsModule
 
                         }
                     } catch (SocketException e) {
-                        Log.wtf(TAG,
-                            "Unable to NetworkInterface.getNetworkInterfaces()"
-                        );
+                        JitsiMeetLogger.e(e, TAG + " Unable to NetworkInterface.getNetworkInterfaces()");
                     }
 
                     result.put("addresses", addresses);
                     promise.resolve(result.toString());
 
-                    Log.d(TAG, "WiFi stats: " + result.toString());
+                    JitsiMeetLogger.d(TAG + " WiFi stats: " + result.toString());
                 } catch (Throwable e) {
-                    Log.e(TAG, "Failed to obtain wifi stats", e);
+                    JitsiMeetLogger.e(e, TAG + " Failed to obtain wifi stats");
                     promise.reject(
                         new Exception("Failed to obtain wifi stats"));
                 }

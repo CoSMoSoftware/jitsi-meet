@@ -8,6 +8,11 @@ import { ColorPalette } from '../../../styles';
 type Props = {
 
     /**
+     * The color of the spinner.
+     */
+    color: ?string,
+
+    /**
      * Prop to set the size of the indicator. This is the same as the
      * prop of the native component.
      */
@@ -27,12 +32,25 @@ export default class LoadingIndicator extends Component<Props> {
      * @returns {ReactElement}
      */
     render() {
+        const { color = ColorPalette.white } = this.props;
+        let { size = 'large' } = this.props;
+
+        if (size === 'medium') {
+            size = 'large';
+        }
+
+        const props = {
+            animating: true,
+            color,
+            ...this.props,
+            size
+        };
+
         return (
             <ActivityIndicator
                 animating = { true }
-                color = { ColorPalette.white }
-                size = { this.props.size || 'large' }
-                { ...this.props } />
+                { ...props }
+                size = { size } />
         );
     }
 }

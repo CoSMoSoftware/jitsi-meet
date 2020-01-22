@@ -9,8 +9,7 @@ import {
     REGISTER_SOUND,
     UNREGISTER_SOUND
 } from './actionTypes';
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+import logger from './logger';
 
 /**
  * The structure use by this reducer to describe a sound.
@@ -96,10 +95,7 @@ function _addOrRemoveAudioElement(state, action) {
                 }));
         }
     } else {
-        const actionName
-            = isAddAction ? '_ADD_AUDIO_ELEMENT' : '_REMOVE_AUDIO_ELEMENT';
-
-        logger.error(`${actionName}: no sound for id: ${soundId}`);
+        logger.warn(`${action.type}: no sound for id: ${soundId}`);
     }
 
     return nextState;

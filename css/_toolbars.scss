@@ -23,305 +23,251 @@
  * TODO: when the old filmstrip has been removed, remove the "new-" prefix.
  */
 .new-toolbox {
-    background-color: $newToolbarBackgroundColor;
     bottom: calc((#{$newToolbarSize} * 2) * -1);
-    box-sizing: border-box;
-    display: flex;
-    justify-content: space-between;
     left: 0;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 12px 8px;
     position: absolute;
     right: 0;
     transition: bottom .3s ease-in;
     width: 100%;
-    z-index: $toolbarZ;
+
 
     &.visible {
         bottom: 0;
+        .toolbox-background {
+            bottom: 0px;
+        }
     }
 
     &.no-buttons {
         display: none;
     }
 
-    .button-group-center,
-    .button-group-left,
-    .button-group-right {
-        display: flex;
-        width: 33%;
-    }
-
-    .button-group-center {
-        justify-content: center;
-    }
-
-    .button-group-right {
-        justify-content: flex-end;
-    }
-
-    i {
-        border-radius: 5px;
-        cursor: pointer;
-        display: block;
-        font-size: inherit;
-        height: 100%;
-        line-height: inherit;
+    .toolbox-background {
+        background-image: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+        transition: bottom .3s ease-in;
+        height: 160px;
         width: 100%;
+        bottom: -160px;
+        pointer-events: none;
+        position: absolute;
+        z-index: $toolbarBackgroundZ;
     }
 
-    i:hover {
-        background-color: $newToolbarButtonHoverColor;
-    }
-
-    i.toggled {
-        background: $newToolbarButtonToggleColor;
-    }
-
-    i.toggled:hover {
-        background-color: $newToolbarButtonHoverColor;
-    }
-
-    i.disabled {
-        cursor: initial;
-        color: #3b475c;
-    }
-
-    .disabled i {
-        cursor: initial;
-        color: #3b475c;
-    }
-
-    i.disabled:hover {
-        background-color: initial;
-    }
-
-    .icon-hangup {
-        color: $hangupColor;
-        font-size: $newToolbarHangupFontSize;
-    }
-
-    .overflow-menu {
-        font-size: 1.2em;
-        list-style-type: none;
-        /**
-         * Undo atlaskit padding by reducing margins.
-         */
-        margin: -15px -24px;
-        padding: 4px 0;
-
-        .overflow-menu-item {
-            align-items: center;
-            color: #B8C7E0;
-            cursor: pointer;
-            display: flex;
-            font-size: 14px;
-            height: 22px;
-            padding: 5px 12px;
-
-            div {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-            }
-
-            &:hover {
-                background: #313D52;
-            }
-
-            &.unclickable {
-                cursor: default;
-            }
-            &.unclickable:hover {
-                background: inherit;
-            }
-            &.disabled {
-                cursor: initial;
-                color: #3b475c;
-            }
-        }
-
-        .beta-tag {
-            background: #B8C7E0;
-            border-radius: 2px;
-            color: $newToolbarBackgroundColor;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-            padding: 0 6px;
-        }
-
-        .overflow-menu-item-icon {
-            margin-right: 10px;
-
-            i {
-                display: inline;
-                font-size: 24px;
-            }
-
-            i:hover {
-                background-color: initial;
-            }
-
-            img {
-                max-width: 24px;
-                max-height: 24px;
-            }
-        }
-
-        .profile-text {
-            max-width: 150px;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-    }
-
-    .toolbox-button {
-        color: $toolbarButtonColor;
-        cursor: pointer;
-        display: inline-block;
-        line-height: $newToolbarSize;
-        margin: 0 4px;
-        text-align: center;
-    }
-
-    .toolbar-button-with-badge {
+    .toolbox-content {
+        box-sizing: border-box;
+        display: flex;
+        justify-content: space-between;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 20px 16px;
         position: relative;
+        width: 100%;
+        z-index: $toolbarZ;
 
-        .badge-round {
-            bottom: -5px;
-            font-size: 12px;
-            line-height: 20px;
-            min-width: 20px;
-            pointer-events: none;
-            position: absolute;
-            right: -5px;
+        .button-group-center,
+        .button-group-left,
+        .button-group-right {
+            display: flex;
+            width: 33%;
+        }
+
+        .button-group-center {
+            justify-content: center;
+
+            .toolbox-button {
+
+                .toolbox-icon {
+                    background-color: #fff;
+                    border-radius: 50%;
+                    border: 1px solid #d1dbe8;
+                    margin: 0px 4px;
+                    width: 38px;
+                    height: 38px;
+        
+                    &:hover {
+                        background-color: #daebfa;
+                        border: 1px solid #daebfa;
+                    }
+        
+                    &.toggled {
+                        background: #2a3a4b;
+                        border: 1px solid #5e6d7a;
+    
+                        svg {
+                            fill: #fff;
+                        }
+        
+                        &:hover {
+                            background-color: #5e6d7a;
+                        }
+                    }
+        
+                    &.disabled, .disabled & {
+                        cursor: initial;
+                        color: #fff;
+                        background-color: #a4b8d1;
+                    }
+    
+                    svg {
+                        fill: #5e6d7a;
+                    }
+                }
+
+                &:nth-child(2) {
+                    .toolbox-icon {
+                        background-color: $hangupColor;
+                        border: 1px solid $hangupColor;
+                        width: 40px;
+                        height: 40px;
+                
+                        &:hover {
+                            background-color: $hangupColor;
+                        }
+
+                        svg {
+                            fill: #fff;
+                        }
+                    }
+                }
+            }
+        }
+
+        .button-group-right {
+            justify-content: flex-end;
+        }
+
+        .overflow-menu {
+            font-size: 1.2em;
+            list-style-type: none;
+            background-color: $overflowMenuBG;
+            /**
+             * Undo atlaskit padding by reducing margins.
+             */
+            margin: -16px -24px;
+            padding: 4px 0;
+
+            .overflow-menu-item {
+                align-items: center;
+                color: $overflowMenuItemColor;
+                cursor: pointer;
+                display: flex;
+                font-size: 14px;
+                height: 22px;
+                padding: 5px 12px;
+
+                div {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                }
+
+                &:hover {
+                    background-color: $overflowMenuItemHoverBG;
+                    color: $overflowMenuItemHoverColor;
+                }
+
+                &.unclickable {
+                    cursor: default;
+                }
+                &.unclickable:hover {
+                    background: inherit;
+                }
+                &.disabled {
+                    cursor: initial;
+                    color: #3b475c;
+                }
+            }
+
+            .beta-tag {
+                background: $overflowMenuItemColor;
+                border-radius: 2px;
+                color: $overflowMenuBG;
+                font-size: 11px;
+                font-weight: bold;
+                margin-left: 8px;
+                padding: 0 6px;
+            }
+
+            .overflow-menu-item-icon {
+                margin-right: 10px;
+
+                i {
+                    display: inline;
+                    font-size: 24px;
+                }
+
+                i:hover {
+                    background-color: initial;
+                }
+
+                img {
+                    max-width: 24px;
+                    max-height: 24px;
+                }
+
+                svg {
+                    fill: #B8C7E0 !important;
+                }
+            }
+
+            .profile-text {
+                max-width: 150px;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                white-space: nowrap;
+            }
+        }
+
+        .toolbox-button {
+            color: $toolbarButtonColor;
+            cursor: pointer;
+            display: inline-block;
+            line-height: $newToolbarSize;
+            margin: 0 8px;
+            text-align: center;
+        }
+
+        .toolbar-button-with-badge {
+            position: relative;
+
+            .badge-round {
+                bottom: -5px;
+                font-size: 12px;
+                line-height: 20px;
+                min-width: 20px;
+                pointer-events: none;
+                position: absolute;
+                right: -5px;
+            }
+        }
+
+        .toolbox-button-wth-dialog {
+            display: inline-block;
+        }
+
+        .toolbox-icon {
+            display: flex;
+            border-radius: 5px;
+            flex-direction: column;
+            font-size: 24px;
+            height: $newToolbarSize;
+            justify-content: center;
+            width: $newToolbarSize;
+
+            &:hover, &.toggled {
+                background: $newToolbarButtonHoverColor;
+            }
+    
+            &.disabled {
+                cursor: initial !important;
+                background-color: #a4b8d1 !important;
+
+                svg {
+                    fill: #fff !important;
+                }
+            }
         }
     }
-
-    .toolbox-button-wth-dialog {
-        display: inline-block;
-    }
-
-    .toolbox-icon {
-        height: $newToolbarSize;
-        font-size: 24px;
-        width: $newToolbarSize;
-    }
-}
-
-.always-on-top-toolbox,
-.filmstrip-toolbox {
-    background-color: $newToolbarBackgroundColor;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    z-index: $toolbarZ;
-
-    i {
-        cursor: pointer;
-        display: block;
-    }
-
-    i:hover {
-        background-color: $newToolbarButtonHoverColor;
-    }
-
-    i.toggled {
-        background: $newToolbarButtonToggleColor;
-    }
-
-    i.toggled:hover:not(.disabled) {
-        background-color: $newToolbarButtonHoverColor;
-    }
-
-    .icon-hangup {
-        color: $hangupColor;
-    }
-
-    .toolbox-button {
-        color: $toolbarButtonColor;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    border-radius: 3px;
-}
-
-.always-on-top-toolbox {
-    flex-direction: row;
-    left: 50%;
-    position: absolute;
-    top: 10px;
-    transform: translateX(-50%);
-    z-index: $toolbarZ;
-
-    i {
-        font-size: $newToolbarFontSize;
-        height: $newToolbarSize;
-        line-height: $newToolbarSize;
-        width: $newToolbarSize;
-    }
-
-    .icon-hangup {
-        font-size: $newToolbarHangupFontSize;
-    }
-
-    .disabled {
-        cursor: initial;
-    }
-
-    .toolbox-button:first-child i {
-        border-top-left-radius: 3px;
-        border-bottom-left-radius: 3px;
-    }
-
-    .toolbox-button:last-child i {
-        border-top-right-radius: 3px;
-        border-bottom-right-radius: 3px;
-    }
-}
-
-.filmstrip-toolbox {
-    i {
-        font-size: 1.9em;
-        height: 37px;
-        line-height: 37px;
-        width: 37px;
-    }
-
-    .toolbox-button:first-child i {
-        border-top-left-radius: 3px;
-        border-top-right-radius: 3px;
-    }
-
-    .toolbox-button:last-child i {
-        border-bottom-left-radius: 3px;
-        border-bottom-right-radius: 3px;
-    }
-}
-
-/**
- * START of slide in animation for extended toolbar panel.
- */
-@include keyframes(slideInExt) {
-    from { width: 0px; }
-    to   { width: $sidebarWidth; } // TO FIX: Make this value a percentage.
-}
-
-.slideInExt {
-    @include animation("slideInExt .5s forwards");
-}
-
-@include keyframes(slideOutExt) {
-  from { width: $sidebarWidth; } // TO FIX: Make this value a percentage.
-  to   { width: 0px; }
-}
-
-.slideOutExt {
-  @include animation("slideOutExt .5s forwards");
 }
 
 /**

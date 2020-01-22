@@ -1,14 +1,20 @@
 // @flow
 
-import React, { Component, type Node } from 'react';
-import { Platform, SafeAreaView, StatusBar, View } from 'react-native';
+import React, { PureComponent, type Node } from 'react';
+import { SafeAreaView, StatusBar, View } from 'react-native';
 
-import styles, { HEADER_PADDING, STATUSBAR_COLOR } from './styles';
+import { ColorSchemeRegistry } from '../../../color-scheme';
+import { connect } from '../../../redux';
+import { isDarkColor } from '../../../styles';
+
+// Register style
+import './headerstyles';
 
 /**
- * Compatibility header padding size for iOS 10 (and older) devices.
+ * Constanst for the (currently) supported statusbar colors.
  */
-const IOS10_PADDING = 20;
+const STATUSBAR_DARK = 'dark-content';
+const STATUSBAR_LIGHT = 'light-content';
 
 /**
  * The type of the React {@code Component} props of {@link Header}
@@ -23,75 +29,36 @@ type Props = {
     /**
      * The component's external style
      */
-    style: Object
+    style: Object,
+
+    /**
+     * The color schemed style of the component.
+     */
+    _styles: Object
 }
 
 /**
  * A generic screen header component.
  */
-export default class Header extends Component<Props> {
-
-    /**
-     * The style of button-like React {@code Component}s rendered in
-     * {@code Header}.
-     *
-     * @returns {Object}
-     */
-    static get buttonStyle(): Object {
-        return styles.headerButton;
-    }
-
-    /**
-     * The style of a React {@code Component} rendering a {@code Header} as its
-     * child.
-     *
-     * @returns {Object}
-     */
-    static get pageStyle(): Object {
-        return styles.page;
-    }
-
-    /**
-     * The style of text rendered in {@code Header}.
-     *
-     * @returns {Object}
-     */
-    static get textStyle(): Object {
-        return styles.headerText;
-    }
-
-    /**
-     * Initializes a new {@code Header} instance.
-     *
-     * @inheritdoc
-     */
-    constructor(props: Props) {
-        super(props);
-
-        this._getIOS10CompatiblePadding
-            = this._getIOS10CompatiblePadding.bind(this);
-    }
-
+class Header extends PureComponent<Props> {
     /**
      * Implements React's {@link Component#render()}.
      *
      * @inheritdoc
      */
     render() {
+        const { _styles } = this.props;
+
         return (
-            <View
-                style = { [
-                    styles.headerOverlay,
-                    this._getIOS10CompatiblePadding()
-                ] } >
+            <View style = { _styles.headerOverlay }>
                 <StatusBar
-                    backgroundColor = { STATUSBAR_COLOR }
-                    barStyle = 'light-content'
+                    backgroundColor = { _styles.statusBar }
+                    barStyle = { this._getStatusBarContentColor() }
                     translucent = { false } />
                 <SafeAreaView>
                     <View
                         style = { [
-                            styles.screenHeader,
+                            _styles.screenHeader,
                             this.props.style
                         ] }>
                         {
@@ -103,29 +70,53 @@ export default class Header extends Component<Props> {
         );
     }
 
-    _getIOS10CompatiblePadding: () => Object;
-
     /**
-     * Adds a padding for iOS 10 (and older) devices to avoid clipping with the
-     * status bar.
-     * Note: This is a workaround for iOS 10 (and older) devices only to fix
-     * usability, but it doesn't take orientation into account, so unnecessary
-     * padding is rendered in some cases.
+     * Calculates the color of the statusbar content (light or dark) based on
+     * certain criterias.
      *
-     * @private
-     * @returns {Object}
+     * @returns {string}
      */
-    _getIOS10CompatiblePadding() {
-        if (Platform.OS === 'ios') {
-            const majorVersionIOS = parseInt(Platform.Version, 10);
+    _getStatusBarContentColor() {
+        const { _styles } = this.props;
+        const { statusBarContent } = _styles;
 
-            if (majorVersionIOS <= 10) {
-                return {
-                    paddingTop: HEADER_PADDING + IOS10_PADDING
-                };
+        if (statusBarContent) {
+            // We have the possibility to define the statusbar color in the
+            // color scheme feature, but since mobile devices (at the moment)
+            // only support two colors (light and dark) we need to normalize
+            // the value.
+
+            if (isDarkColor(statusBarContent)) {
+                return STATUSBAR_DARK;
             }
+
+            return STATUSBAR_LIGHT;
         }
 
-        return null;
+        // The statusbar color is not defined, so we need to base our choice
+        // on the header colors
+        const { statusBar, screenHeader } = _styles;
+
+        if (isDarkColor(statusBar || screenHeader.backgroundColor)) {
+            return STATUSBAR_LIGHT;
+        }
+
+        return STATUSBAR_DARK;
     }
 }
+
+/**
+ * Maps part of the Redux state to the props of the component.
+ *
+ * @param {Object} state - The Redux state.
+ * @returns {{
+ *     _styles: Object
+ * }}
+ */
+function _mapStateToProps(state) {
+    return {
+        _styles: ColorSchemeRegistry.get(state, 'Header')
+    };
+}
+
+export default connect(_mapStateToProps)(Header);

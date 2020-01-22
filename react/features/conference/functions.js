@@ -1,7 +1,12 @@
-import { getName } from '../app';
 import { translateToHTML } from '../base/i18n';
-import { browser } from '../base/lib-jitsi-meet';
-import { showWarningNotification } from '../notifications';
+import { isSuboptimalBrowser } from '../base/environment';
+import { toState } from '../base/redux';
+
+import {
+    areThereNotifications,
+    showWarningNotification
+} from '../notifications';
+import { getOverlayToRender } from '../overlay';
 
 /**
  * Shows the suboptimal experience notification if needed.
@@ -11,28 +16,34 @@ import { showWarningNotification } from '../notifications';
  * @returns {void}
  */
 export function maybeShowSuboptimalExperienceNotification(dispatch, t) {
-    if (!browser.isChrome()
-            && !browser.isFirefox()
-            && !browser.isNWJS()
-            && !browser.isElectron()
-
-            // Adding react native to the list of recommended browsers is not
-            // necessary for now because the function won't be executed at all
-            // in this case but I'm adding it for completeness.
-            && !browser.isReactNative()
-    ) {
+    if (isSuboptimalBrowser()) {
         dispatch(
             showWarningNotification(
                 {
                     titleKey: 'notify.suboptimalExperienceTitle',
                     description: translateToHTML(
                         t,
-                        'notify.suboptimalExperienceDescription',
-                        {
-                            appName: getName()
-                        })
+                        'notify.suboptimalBrowserWarning'
+                    )
                 }
             )
         );
     }
+}
+
+/**
+ * Tells whether or not the notifications should be displayed within
+ * the conference feature based on the current Redux state.
+ *
+ * @param {Object|Function} stateful - The redux store state.
+ * @returns {boolean}
+ */
+export function shouldDisplayNotifications(stateful) {
+    const state = toState(stateful);
+    const isAnyOverlayVisible = Boolean(getOverlayToRender(state));
+    const { calleeInfoVisible } = state['features/invite'];
+
+    return areThereNotifications(state)
+            && !isAnyOverlayVisible
+            && !calleeInfoVisible;
 }

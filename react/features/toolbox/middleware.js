@@ -43,6 +43,12 @@ MiddlewareRegistry.register(store => next => action => {
     return next(action);
 });
 
+type DocumentElement = {
+    +requestFullscreen?: Function,
+    +mozRequestFullScreen?: Function,
+    +webkitRequestFullscreen?: Function
+}
+
 /**
  * Makes an external request to enter or exit full screen mode.
  *
@@ -58,13 +64,11 @@ function _setFullScreen(next, action) {
         const { fullScreen } = action;
 
         if (fullScreen) {
-            const documentElement = document.documentElement || {};
+            const documentElement: DocumentElement
+                = document.documentElement || {};
 
             if (typeof documentElement.requestFullscreen === 'function') {
                 documentElement.requestFullscreen();
-            } else if (
-                typeof documentElement.msRequestFullscreen === 'function') {
-                documentElement.msRequestFullscreen();
             } else if (
                 typeof documentElement.mozRequestFullScreen === 'function') {
                 documentElement.mozRequestFullScreen();
@@ -72,14 +76,23 @@ function _setFullScreen(next, action) {
                 typeof documentElement.webkitRequestFullscreen === 'function') {
                 documentElement.webkitRequestFullscreen();
             }
-        } else if (typeof document.exitFullscreen === 'function') {
-            document.exitFullscreen();
-        } else if (typeof document.msExitFullscreen === 'function') {
-            document.msExitFullscreen();
-        } else if (typeof document.mozCancelFullScreen === 'function') {
-            document.mozCancelFullScreen();
-        } else if (typeof document.webkitExitFullscreen === 'function') {
-            document.webkitExitFullscreen();
+        } else {
+            /* eslint-disable no-lonely-if */
+
+            // $FlowFixMe
+            if (typeof document.exitFullscreen === 'function') {
+                document.exitFullscreen();
+
+            // $FlowFixMe
+            } else if (typeof document.mozCancelFullScreen === 'function') {
+                document.mozCancelFullScreen();
+
+            // $FlowFixMe
+            } else if (typeof document.webkitExitFullscreen === 'function') {
+                document.webkitExitFullscreen();
+            }
+
+            /* eslint-enable no-loney-if */
         }
     }
 

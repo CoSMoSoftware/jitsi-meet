@@ -1,17 +1,23 @@
 // @flow
 
+import { generateRoomWithoutSeparator } from 'js-utils/random';
 import { Component } from 'react';
+import type { Dispatch } from 'redux';
 
 import { createWelcomePageEvent, sendAnalytics } from '../../analytics';
 import { appNavigate } from '../../app';
+import { isCalendarEnabled } from '../../calendar-sync';
 import { isRoomValid } from '../../base/conference';
-
-import { generateRoomWithoutSeparator } from '../functions';
 
 /**
  * {@code AbstractWelcomePage}'s React {@code Component} prop types.
  */
 type Props = {
+
+    /**
+     * Whether the calendar functionality is enabled or not.
+     */
+    _calendarEnabled: boolean,
 
     /**
      * Room name to join to.
@@ -26,7 +32,7 @@ type Props = {
     /**
      * The Redux dispatch Function.
      */
-    dispatch: Dispatch<*>
+    dispatch: Dispatch<any>
 };
 
 /**
@@ -36,6 +42,17 @@ type Props = {
  */
 export class AbstractWelcomePage extends Component<Props, *> {
     _mounted: ?boolean;
+
+    /**
+     * Implements React's {@link Component#getDerivedStateFromProps()}.
+     *
+     * @inheritdoc
+     */
+    static getDerivedStateFromProps(props: Props, state: Object) {
+        return {
+            room: props._room || state.room
+        };
+    }
 
     /**
      * Save room name into component's local state.
@@ -77,24 +94,14 @@ export class AbstractWelcomePage extends Component<Props, *> {
     }
 
     /**
-     * Implements React's {@link Component#componentWillMount()}. Invoked
-     * immediately before mounting occurs.
+     * Implements React's {@link Component#componentDidMount()}. Invoked
+     * immediately after mounting occurs.
      *
      * @inheritdoc
      */
-    componentWillMount() {
+    componentDidMount() {
         this._mounted = true;
-    }
-
-    /**
-     * Implements React's {@link Component#componentWillReceiveProps()}. Invoked
-     * before this mounted component receives new props.
-     *
-     * @inheritdoc
-     * @param {Props} nextProps - New props component will receive.
-     */
-    componentWillReceiveProps(nextProps: Props) {
-        this.setState({ room: nextProps._room });
+        sendAnalytics(createWelcomePageEvent('viewed', undefined, { value: 1 }));
     }
 
     /**
@@ -149,7 +156,7 @@ export class AbstractWelcomePage extends Component<Props, *> {
     }
 
     /**
-     * Determines whether the 'Join' button is (to be) disabled i.e. there's no
+     * Determines whether the 'Join' button is (to be) disabled i.e. There's no
      * valid room name typed into the respective text input field.
      *
      * @protected
@@ -237,12 +244,14 @@ export class AbstractWelcomePage extends Component<Props, *> {
  * @param {Object} state - The redux state.
  * @protected
  * @returns {{
+ *     _calendarEnabled: boolean,
  *     _room: string,
  *     _settings: Object
  * }}
  */
 export function _mapStateToProps(state: Object) {
     return {
+        _calendarEnabled: isCalendarEnabled(state),
         _room: state['features/base/conference'].room,
         _settings: state['features/base/settings']
     };

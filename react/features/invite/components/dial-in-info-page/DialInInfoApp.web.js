@@ -8,18 +8,20 @@ import { i18next } from '../../../base/i18n';
 import { DialInSummary } from '../dial-in-summary';
 
 import NoRoomError from './NoRoomError';
+import Platform from '../../../base/react/Platform.web';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const params = parseURLParams(window.location, true, 'search');
-    const { room } = params;
+    const { room } = parseURLParams(window.location, true, 'search');
+    const OS = Platform.OS;
+    const isUsingMobileBrowser = OS === 'android' || OS === 'ios';
 
     ReactDOM.render(
         <I18nextProvider i18n = { i18next }>
             { room
                 ? <DialInSummary
                     className = 'dial-in-page'
-                    clickableNumbers = { false }
-                    room = { params.room } />
+                    clickableNumbers = { isUsingMobileBrowser }
+                    room = { decodeURIComponent(room) } />
                 : <NoRoomError className = 'dial-in-page' /> }
         </I18nextProvider>,
         document.getElementById('react')

@@ -23,14 +23,9 @@
     top: 0;
     width: 100%;
 
-    &.fit-full-height #largeVideoBackground {
-        height: 100%;
-        width: auto;
-    }
-
-    .fit-full-width #largeVideoBackground {
-        height: auto;
-        width: 100%;
+    #largeVideoBackground {
+        min-height: 100%;
+        min-width: 100%;
     }
 }
 #largeVideoBackgroundContainer {
@@ -80,15 +75,6 @@
             display: inline-block;
             float: left;
             pointer-events: all;
-        }
-
-        /**
-         * Need to overwrite the background for the top toolbar dark theme div
-         * wrapper needed before we're able to move all top toolbar indicators
-         * creation to react.
-         */
-        .ckAJgx {
-            background: none;
         }
     }
 
@@ -359,8 +345,11 @@
 /**
  * Toolbar icon internal i elements (font icons).
  */
-.toolbar-icon>i {
-    line-height: $thumbnailToolbarHeight;
+.toolbar-icon>div {
+    height: $thumbnailToolbarHeight;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /**
@@ -419,6 +408,7 @@
     height: 13px;
     color: #FFF;
     font-size: 10pt;
+    margin-right: $remoteVideoMenuIconMargin;
 
     >i{
         cursor: hand;
@@ -500,25 +490,26 @@
     height: 300px;
     margin: auto;
     position: relative;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 #mixedstream {
     display:none !important;
 }
 
-#dominantSpeakerAvatar,
+#dominantSpeakerAvatarContainer,
 .dynamic-shadow {
     width: 200px;
     height: 200px;
 }
 
-#dominantSpeakerAvatar {
+#dominantSpeakerAvatarContainer {
     top: 50px;
     margin: auto;
     position: relative;
-    border-radius: 100px;
+    overflow: hidden;
     visibility: inherit;
-    background-color: #000000;
 }
 
 .dynamic-shadow {
@@ -530,24 +521,36 @@
     transition: box-shadow 0.3s ease;
 }
 
-.userAvatar {
+.avatar-container {
     @include maxSize(60px);
     @include absoluteAligning();
-    border-radius: 50%;
+    display: flex;
+    justify-content: center;
     height: 50%;
+    overflow: hidden;
     width: auto;
+
+    .userAvatar {
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
 }
 
 #videoNotAvailableScreen {
     text-align: center;
     #avatarContainer {
+        border-radius: 50%;
+        display: inline-block;
         height: 50vh;
-        display:inline-block;
         margin-top: 25vh;
+        overflow: hidden;
+        width: 50vh;
 
         #avatar {
-            border-radius: 50%;
             height: 100%;
+            object-fit: cover;
+            width: 100%;
         }
     }
 }
@@ -556,30 +559,6 @@
     height: 100%;
     width: 100%;
     object-fit: cover;
-}
-
-.noMic {
-    position: absolute;
-    border-radius: 8px;
-    z-index: $zindex1;
-    width: 100%;
-    height: 100%;
-    background-image: url("../images/noMic.png");
-    background-color: #000;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.noVideo {
-    position: absolute;
-    border-radius: 8px;
-    z-index: $zindex1;
-    width: 100%;
-    height: 100%;
-    background-image: url("../images/noVideo.png");
-    background-color: #000;
-    background-repeat: no-repeat;
-    background-position: center;
 }
 
 .videoMessageFilter {

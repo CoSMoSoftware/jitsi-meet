@@ -1,9 +1,8 @@
 // @flow
 
 import VideoLayout from '../../../modules/UI/videolayout/VideoLayout.js';
-import UIEvents from '../../../service/UI/UIEvents';
 
-import { CONFERENCE_JOINED } from '../base/conference';
+import { CONFERENCE_JOINED, CONFERENCE_WILL_LEAVE } from '../base/conference';
 import {
     DOMINANT_SPEAKER_CHANGED,
     PARTICIPANT_JOINED,
@@ -13,7 +12,10 @@ import {
     getParticipantById
 } from '../base/participants';
 import { MiddlewareRegistry } from '../base/redux';
-import { TRACK_ADDED } from '../base/tracks';
+import { TRACK_ADDED, TRACK_REMOVED } from '../base/tracks';
+import { SET_FILMSTRIP_VISIBLE } from '../filmstrip';
+
+import './middleware.any';
 
 declare var APP: Object;
 
@@ -34,6 +36,10 @@ MiddlewareRegistry.register(store => next => action => {
     switch (action.type) {
     case CONFERENCE_JOINED:
         VideoLayout.mucJoined();
+        break;
+
+    case CONFERENCE_WILL_LEAVE:
+        VideoLayout.reset();
         break;
 
     case PARTICIPANT_JOINED:
@@ -65,15 +71,21 @@ MiddlewareRegistry.register(store => next => action => {
 
     case PIN_PARTICIPANT:
         VideoLayout.onPinChange(action.participant.id);
-        APP.UI.emitEvent(
-            UIEvents.PINNED_ENDPOINT,
-            action.participant.id,
-            Boolean(action.participant.id));
+        break;
+
+    case SET_FILMSTRIP_VISIBLE:
+        VideoLayout.resizeVideoArea(true, false);
         break;
 
     case TRACK_ADDED:
         if (!action.track.local) {
             VideoLayout.onRemoteStreamAdded(action.track.jitsiTrack);
+        }
+
+        break;
+    case TRACK_REMOVED:
+        if (!action.track.local) {
+            VideoLayout.onRemoteStreamRemoved(action.track.jitsiTrack);
         }
 
         break;

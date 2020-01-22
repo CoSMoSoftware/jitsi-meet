@@ -1,6 +1,5 @@
 // @flow
 
-import { StatusBar } from 'react-native';
 import { Immersive } from 'react-native-immersive';
 
 import { APP_WILL_MOUNT, APP_WILL_UNMOUNT } from '../../base/app';
@@ -47,7 +46,7 @@ MiddlewareRegistry.register(store => next => action => {
 
 StateListenerRegistry.register(
     /* selector */ state => {
-        const { audioOnly } = state['features/base/conference'];
+        const { enabled: audioOnly } = state['features/base/audio-only'];
         const conference = getCurrentConference(state);
 
         return conference ? !audioOnly : false;
@@ -69,7 +68,7 @@ function _onImmersiveChange({ getState }) {
     const { appState } = state['features/background'];
 
     if (appState === 'active') {
-        const { audioOnly } = state['features/base/conference'];
+        const { enabled: audioOnly } = state['features/base/audio-only'];
         const conference = getCurrentConference(state);
         const fullScreen = conference ? !audioOnly : false;
 
@@ -91,10 +90,6 @@ function _setFullScreen(fullScreen: boolean) {
     // throws on other platforms.
     if (Platform.OS === 'android') {
         fullScreen ? Immersive.on() : Immersive.off();
-    } else {
-        // On platforms other than Android go with whatever React Native itself
-        // supports.
-        StatusBar.setHidden(fullScreen, 'slide');
     }
 }
 

@@ -1,25 +1,12 @@
 /* eslint-disable no-unused-vars, no-var */
 
 var config = {
-    // Configuration
-    //
-
-    // Alternative location for the configuration.
-    // configLocation: './config.json',
-
-    // Custom function which given the URL path should return a room name.
-    // getroomnode: function (path) { return 'someprefixpossiblybasedonpath'; },
-
-
     // Connection
     //
 
     hosts: {
         // XMPP domain.
         domain: 'jitsi-meet.example.com',
-
-        // XMPP MUC domain. FIXME: use XEP-0030 to discover it.
-        muc: 'conference.jitsi-meet.example.com'
 
         // When using authentication, domain for guest users.
         // anonymousdomain: 'guest.example.com',
@@ -35,6 +22,9 @@ var config = {
 
         // Focus component domain. Defaults to focus.<domain>.
         // focus: 'focus.jitsi-meet.example.com',
+
+        // XMPP MUC domain. FIXME: use XEP-0030 to discover it.
+        muc: 'conference.jitsi-meet.example.com'
     },
 
     // BOSH URL. FIXME: use XEP-0156 to discover it.
@@ -60,6 +50,10 @@ var config = {
 
         // Enables the test specific features consumed by jitsi-meet-torture
         // testMode: false
+
+        // Disables the auto-play behavior of *all* newly created video element.
+        // This is useful when the client runs on a host with limited resources.
+        // noAutoPlayVideo: false
     },
 
     // Disables ICE/UDP by filtering out local and remote UDP candidates in
@@ -79,6 +73,17 @@ var config = {
     // Disable measuring of audio levels.
     // disableAudioLevels: false,
 
+    // Enabling this will run the lib-jitsi-meet no audio detection module which
+    // will notify the user if the current selected microphone has no audio
+    // input and will suggest another valid device if one is present.
+    enableNoAudioDetection: true,
+
+    // Enabling this will run the lib-jitsi-meet noise detection module which will
+    // notify the user if there is noise, other than voice, coming from the current
+    // selected microphone. The purpose it to let the user know that the input could
+    // be potentially unpleasant for other meeting participants.
+    enableNoisyMicDetection: true,
+
     // Start the conference in audio only mode (no video is being received nor
     // sent).
     // startAudioOnly: false,
@@ -89,6 +94,10 @@ var config = {
     // Start calls with audio muted. Unlike the option above, this one is only
     // applied locally. FIXME: having these 2 options is confusing.
     // startWithAudioMuted: false,
+
+    // Enabling it (with #params) will disable local audio output of remote
+    // participants and to enable it back a reload is needed.
+    // startSilent: false
 
     // Video
 
@@ -119,10 +128,6 @@ var config = {
     // are requested again.
     // enableLayerSuspension: false,
 
-    // Suspend sending video if bandwidth estimation is too low. This may cause
-    // problems with audio playback. Disabled until these are fixed.
-    disableSuspendVideo: true,
-
     // Every participant after the Nth will start video muted.
     // startVideoMuted: 10,
 
@@ -146,7 +151,7 @@ var config = {
     desktopSharingChromeExtId: null,
 
     // Whether desktop sharing should be disabled on Chrome.
-    desktopSharingChromeDisabled: true,
+    // desktopSharingChromeDisabled: false,
 
     // The media sources to use when using screen sharing with the Chrome
     // extension.
@@ -156,7 +161,7 @@ var config = {
     desktopSharingChromeMinExtVersion: '0.1',
 
     // Whether desktop sharing should be disabled on Firefox.
-    desktopSharingFirefoxDisabled: false,
+    // desktopSharingFirefoxDisabled: false,
 
     // Optional desktop sharing frame rate options. Default value: min:5, max:5.
     // desktopSharingFrameRate: {
@@ -171,6 +176,24 @@ var config = {
 
     // Whether to enable file recording or not.
     // fileRecordingsEnabled: false,
+    // Enable the dropbox integration.
+    // dropbox: {
+    //     appKey: '<APP_KEY>' // Specify your app key here.
+    //     // A URL to redirect the user to, after authenticating
+    //     // by default uses:
+    //     // 'https://jitsi-meet.example.com/static/oauth.html'
+    //     redirectURI:
+    //          'https://jitsi-meet.example.com/subfolder/static/oauth.html'
+    // },
+    // When integrations like dropbox are enabled only that will be shown,
+    // by enabling fileRecordingsServiceEnabled, we show both the integrations
+    // and the generic recording service (its configuration and storage type
+    // depends on jibri configuration)
+    // fileRecordingsServiceEnabled: false,
+    // Whether to show the possibility to share file recording with other people
+    // (e.g. meeting participants), based on the actual implementation
+    // on the backend.
+    // fileRecordingsServiceSharingEnabled: false,
 
     // Whether to enable live streaming or not.
     // liveStreamingEnabled: false,
@@ -178,6 +201,9 @@ var config = {
     // Transcription (in interface_config,
     // subtitles and buttons can be configured)
     // transcribingEnabled: false,
+
+    // Enables automatic turning on captions when recording is started
+    // autoCaptionOnRecord: false,
 
     // Misc
 
@@ -237,10 +263,6 @@ var config = {
     // Disable hiding of remote thumbnails when in a 1-on-1 conference call.
     // disable1On1Mode: false,
 
-    // The minimum value a video's height (or width, whichever is smaller) needs
-    // to be in order to be considered high-definition.
-    minHDHeight: 540,
-
     // Default language for the user interface.
     // defaultLanguage: 'en',
 
@@ -252,9 +274,20 @@ var config = {
     // Whether or not some features are checked based on token.
     // enableFeaturesBasedOnToken: false,
 
+    // Enable lock room for all moderators, even when userRolesBasedOnToken is enabled and participants are guests.
+    // lockRoomGuestEnabled: false,
+
+    // When enabled the password used for locking a room is restricted to up to the number of digits specified
+    // roomPasswordNumberOfDigits: 10,
+    // default: roomPasswordNumberOfDigits: false,
+
     // Message to show the users. Example: 'The service will be down for
     // maintenance at 01:00 AM GMT,
     // noticeMessage: '',
+
+    // Enables calendar integration, depends on googleApiApplicationClientID
+    // and microsoftApiApplicationClientID
+    // enableCalendarIntegration: false,
 
     // Stats
     //
@@ -270,13 +303,11 @@ var config = {
     // callStatsID: '',
     // callStatsSecret: '',
 
-    // enables callstatsUsername to be reported as statsId and used
-    // by callstats as repoted remote id
-    // enableStatsID: false
-
     // enables sending participants display name to callstats
     // enableDisplayNameInStats: false
 
+    // enables sending participants email if available to callstats and other analytics
+    // enableEmailInStats: false
 
     // Privacy
     //
@@ -304,6 +335,8 @@ var config = {
 
         // The STUN servers that will be used in the peer to peer connections
         stunServers: [
+
+            // { urls: 'stun:jitsi-meet.example.com:443' },
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' }
@@ -330,14 +363,19 @@ var config = {
         // backToP2PDelay: 5
     },
 
-    // A list of scripts to load as lib-jitsi-meet "analytics handlers".
-    // analyticsScriptUrls: [
-    //      "libs/analytics-ga.js", // google-analytics
-    //      "https://example.com/my-custom-analytics.js"
-    // ],
+    analytics: {
+        // The Google Analytics Tracking ID:
+        // googleAnalyticsTrackingId: 'your-tracking-id-UA-123456-1'
 
-    // The Google Analytics Tracking ID
-    // googleAnalyticsTrackingId = 'your-tracking-id-here-UA-123456-1',
+        // The Amplitude APP Key:
+        // amplitudeAPPKey: '<APP_KEY>'
+
+        // Array of script URLs to load as lib-jitsi-meet "analytics handlers".
+        // scriptURLs: [
+        //      "libs/analytics-ga.min.js", // google-analytics
+        //      "https://example.com/my-custom-analytics.js"
+        // ],
+    },
 
     // Information about the jitsi-meet instance we are connecting to, including
     // the user region as seen by the server.
@@ -346,6 +384,61 @@ var config = {
         // region: "europe",
         // userRegion: "asia"
     }
+
+    // Local Recording
+    //
+
+    // localRecording: {
+    // Enables local recording.
+    // Additionally, 'localrecording' (all lowercase) needs to be added to
+    // TOOLBAR_BUTTONS in interface_config.js for the Local Recording
+    // button to show up on the toolbar.
+    //
+    //     enabled: true,
+    //
+
+    // The recording format, can be one of 'ogg', 'flac' or 'wav'.
+    //     format: 'flac'
+    //
+
+    // }
+
+    // Options related to end-to-end (participant to participant) ping.
+    // e2eping: {
+    //   // The interval in milliseconds at which pings will be sent.
+    //   // Defaults to 10000, set to <= 0 to disable.
+    //   pingInterval: 10000,
+    //
+    //   // The interval in milliseconds at which analytics events
+    //   // with the measured RTT will be sent. Defaults to 60000, set
+    //   // to <= 0 to disable.
+    //   analyticsInterval: 60000,
+    //   }
+
+    // If set, will attempt to use the provided video input device label when
+    // triggering a screenshare, instead of proceeding through the normal flow
+    // for obtaining a desktop stream.
+    // NOTE: This option is experimental and is currently intended for internal
+    // use only.
+    // _desktopSharingSourceDevice: 'sample-id-or-label'
+
+    // If true, any checks to handoff to another application will be prevented
+    // and instead the app will continue to display in the current browser.
+    // disableDeepLinking: false
+
+    // A property to disable the right click context menu for localVideo
+    // the menu has option to flip the locally seen video for local presentations
+    // disableLocalVideoFlip: false
+
+    // Deployment specific URLs.
+    // deploymentUrls: {
+    //    // If specified a 'Help' button will be displayed in the overflow menu with a link to the specified URL for
+    //    // user documentation.
+    //    userDocumentationURL: 'https://docs.example.com/video-meetings.html',
+    //    // If specified a 'Download our apps' button will be displayed in the overflow menu with a link
+    //    // to the specified URL for an app download page.
+    //    downloadAppsUrl: 'https://docs.example.com/our-apps.html'
+    // }
 
     // List of undocumented settings used in jitsi-meet
     /**
@@ -361,13 +454,13 @@ var config = {
      dialOutCodesUrl
      disableRemoteControl
      displayJids
-     enableLocalVideoFlip
      etherpad_base
      externalConnectUrl
      firefox_fake_device
      googleApiApplicationClientID
      iAmRecorder
      iAmSipGateway
+     microsoftApiApplicationClientID
      peopleSearchQueryTypes
      peopleSearchUrl
      requireDisplayName
@@ -396,6 +489,7 @@ var config = {
      nick
      startBitrate
      */
+
 };
 
 /* eslint-enable no-unused-vars, no-var */

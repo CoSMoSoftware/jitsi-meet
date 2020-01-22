@@ -4,7 +4,11 @@ import React, { Fragment } from 'react';
 
 import { BaseApp } from '../../base/app';
 import { toURLString } from '../../base/util';
+import '../../follow-me';
 import { OverlayContainer } from '../../overlay';
+
+import '../../base/lastn'; // Register lastN middleware
+import '../../rejoin'; // Enable rejoin analytics
 
 import { appNavigate } from '../actions';
 import { getDefaultURL } from '../functions';
@@ -13,12 +17,6 @@ import { getDefaultURL } from '../functions';
  * The type of React {@code Component} props of {@link AbstractApp}.
  */
 export type Props = {
-
-    /**
-     * The default URL {@code AbstractApp} is to open when not in any
-     * conference/room.
-     */
-    defaultURL: string,
 
     /**
      * XXX Refer to the implementation of loadURLObject: in
@@ -45,8 +43,8 @@ export class AbstractApp extends BaseApp<Props, *> {
      *
      * @inheritdoc
      */
-    componentWillMount() {
-        super.componentWillMount();
+    componentDidMount() {
+        super.componentDidMount();
 
         this._init.then(() => {
             // If a URL was explicitly specified to this React Component, then
@@ -56,46 +54,27 @@ export class AbstractApp extends BaseApp<Props, *> {
     }
 
     /**
-     * Notifies this mounted React {@code Component} that it will receive new
-     * props. Makes sure that this {@code AbstractApp} has a redux store to use.
+     * Implements React Component's componentDidUpdate.
      *
      * @inheritdoc
-     * @param {Object} nextProps - The read-only React {@code Component} props
-     * that this instance will receive.
-     * @returns {void}
      */
-    componentWillReceiveProps(nextProps: Props) {
-        const { props } = this;
+    componentDidUpdate(prevProps: Props) {
+        const previousUrl = toURLString(prevProps.url);
+        const currentUrl = toURLString(this.props.url);
+        const previousTimestamp = prevProps.timestamp;
+        const currentTimestamp = this.props.timestamp;
 
         this._init.then(() => {
             // Deal with URL changes.
-            let { url } = nextProps;
 
-            url = toURLString(url);
-            if (toURLString(props.url) !== url
+            if (previousUrl !== currentUrl
 
                     // XXX Refer to the implementation of loadURLObject: in
                     // ios/sdk/src/JitsiMeetView.m for further information.
-                    || props.timestamp !== nextProps.timestamp) {
-                this._openURL(url || this._getDefaultURL());
+                    || previousTimestamp !== currentTimestamp) {
+                this._openURL(currentUrl || this._getDefaultURL());
             }
         });
-    }
-
-    /**
-     * Gets a {@code Location} object from the window with information about the
-     * current location of the document. Explicitly defined to allow extenders
-     * to override because React Native does not usually have a location
-     * property on its window unless debugging remotely in which case the
-     * browser that is the remote debugger will provide a location property on
-     * the window.
-     *
-     * @public
-     * @returns {Location} A {@code Location} object with information about the
-     * current location of the document.
-     */
-    getWindowLocation() {
-        return undefined;
     }
 
     /**
@@ -128,10 +107,10 @@ export class AbstractApp extends BaseApp<Props, *> {
     }
 
     /**
-     * Navigates this {@code AbstractApp} to (i.e. opens) a specific URL.
+     * Navigates this {@code AbstractApp} to (i.e. Opens) a specific URL.
      *
      * @param {Object|string} url - The URL to navigate this {@code AbstractApp}
-     * to (i.e. the URL to open).
+     * to (i.e. The URL to open).
      * @protected
      * @returns {void}
      */

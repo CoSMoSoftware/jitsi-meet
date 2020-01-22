@@ -4,39 +4,72 @@ import { ReducerRegistry } from '../base/redux';
 
 import {
     ADD_MESSAGE,
-    SET_LAST_READ_MESSAGE
+    CLEAR_MESSAGES,
+    SET_PRIVATE_MESSAGE_RECIPIENT,
+    TOGGLE_CHAT
 } from './actionTypes';
 
 const DEFAULT_STATE = {
-    open: false,
+    isOpen: false,
+    lastReadMessage: undefined,
     messages: [],
-    lastReadMessage: null
+    privateMessageRecipient: undefined
 };
 
 ReducerRegistry.register('features/chat', (state = DEFAULT_STATE, action) => {
     switch (action.type) {
     case ADD_MESSAGE: {
         const newMessage = {
+            displayName: action.displayName,
+            error: action.error,
+            id: action.id,
+            messageType: action.messageType,
             message: action.message,
-            timestamp: action.timestamp,
-            userName: action.userName
+            privateMessage: action.privateMessage,
+            recipient: action.recipient,
+            timestamp: action.timestamp
         };
+
+        // React native, unlike web, needs a reverse sorted message list.
+        const messages = navigator.product === 'ReactNative'
+            ? [
+                newMessage,
+                ...state.messages
+            ]
+            : [
+                ...state.messages,
+                newMessage
+            ];
 
         return {
             ...state,
             lastReadMessage:
                 action.hasRead ? newMessage : state.lastReadMessage,
-            messages: [
-                ...state.messages,
-                newMessage
-            ]
+            messages
         };
     }
 
-    case SET_LAST_READ_MESSAGE:
+    case CLEAR_MESSAGES:
         return {
             ...state,
-            lastReadMessage: action.message
+            lastReadMessage: undefined,
+            messages: []
+        };
+
+    case SET_PRIVATE_MESSAGE_RECIPIENT:
+        return {
+            ...state,
+            isOpen: Boolean(action.participant) || state.isOpen,
+            privateMessageRecipient: action.participant
+        };
+
+    case TOGGLE_CHAT:
+        return {
+            ...state,
+            isOpen: !state.isOpen,
+            lastReadMessage: state.messages[
+                navigator.product === 'ReactNative' ? 0 : state.messages.length - 1],
+            privateMessageRecipient: state.isOpen ? undefined : state.privateMessageRecipient
         };
     }
 

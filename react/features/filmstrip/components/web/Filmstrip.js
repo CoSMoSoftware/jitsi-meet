@@ -2,14 +2,23 @@
 
 import _ from 'lodash';
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import type { Dispatch } from 'redux';
 
+import {
+    createShortcutEvent,
+    createToolbarEvent,
+    sendAnalytics
+} from '../../../analytics';
+import { Icon, IconMenuDown, IconMenuUp } from '../../../base/icons';
+import { connect } from '../../../base/redux';
 import { dockToolbox } from '../../../toolbox';
 
-import { setFilmstripHovered } from '../../actions';
+import { setFilmstripHovered, setFilmstripVisible } from '../../actions';
 import { shouldRemoteVideosBeVisible } from '../../functions';
+
 import Toolbar from './Toolbar';
 
+declare var APP: Object;
 declare var interfaceConfig: Object;
 
 /**
@@ -34,9 +43,19 @@ type Props = {
     _hovered: boolean,
 
     /**
+     * Additional CSS class names to add to the container of all the thumbnails.
+     */
+    _videosClassName: string,
+
+    /**
+     * Whether or not the filmstrip videos should currently be displayed.
+     */
+    _visible: boolean,
+
+    /**
      * The redux {@code dispatch} function.
      */
-    dispatch: Dispatch<*>
+    dispatch: Dispatch<any>
 };
 
 /**
@@ -78,6 +97,35 @@ class Filmstrip extends Component <Props> {
         // Bind event handlers so they are only bound once for every instance.
         this._onMouseOut = this._onMouseOut.bind(this);
         this._onMouseOver = this._onMouseOver.bind(this);
+        this._onShortcutToggleFilmstrip
+            = this._onShortcutToggleFilmstrip.bind(this);
+        this._onToolbarToggleFilmstrip
+            = this._onToolbarToggleFilmstrip.bind(this);
+    }
+
+    /**
+     * Implements React's {@link Component#componentDidMount}.
+     *
+     * @inheritdoc
+     */
+    componentDidMount() {
+        if (!this.props._filmstripOnly) {
+            APP.keyboardshortcut.registerShortcut(
+                'F',
+                'filmstripPopover',
+                this._onShortcutToggleFilmstrip,
+                'keyboardShortcuts.toggleFilmstrip'
+            );
+        }
+    }
+
+    /**
+     * Implements React's {@link Component#componentDidUpdate}.
+     *
+     * @inheritdoc
+     */
+    componentWillUnmount() {
+        APP.keyboardshortcut.unregisterShortcut('F');
     }
 
     /**
@@ -96,9 +144,10 @@ class Filmstrip extends Component <Props> {
 
         return (
             <div className = { `filmstrip ${this.props._className}` }>
-                { this.props._filmstripOnly && <Toolbar /> }
+                { this.props._filmstripOnly
+                    ? <Toolbar /> : this._renderToggleButton() }
                 <div
-                    className = 'filmstrip__videos'
+                    className = { this.props._videosClassName }
                     id = 'remoteVideos'>
                     <div
                         className = 'filmstrip__videos'
@@ -126,6 +175,16 @@ class Filmstrip extends Component <Props> {
                 </div>
             </div>
         );
+    }
+
+    /**
+     * Dispatches an action to change the visibility of the filmstrip.
+     *
+     * @private
+     * @returns {void}
+     */
+    _doToggleFilmstrip() {
+        this.props.dispatch(setFilmstripVisible(!this.props._visible));
     }
 
     /**
@@ -165,6 +224,65 @@ class Filmstrip extends Component <Props> {
         this._isHovered = true;
         this._notifyOfHoveredStateUpdate();
     }
+
+    _onShortcutToggleFilmstrip: () => void;
+
+    /**
+     * Creates an analytics keyboard shortcut event and dispatches an action for
+     * toggling filmstrip visibility.
+     *
+     * @private
+     * @returns {void}
+     */
+    _onShortcutToggleFilmstrip() {
+        sendAnalytics(createShortcutEvent(
+            'toggle.filmstrip',
+            {
+                enable: this.props._visible
+            }));
+
+        this._doToggleFilmstrip();
+    }
+
+    _onToolbarToggleFilmstrip: () => void;
+
+    /**
+     * Creates an analytics toolbar event and dispatches an action for opening
+     * the speaker stats modal.
+     *
+     * @private
+     * @returns {void}
+     */
+    _onToolbarToggleFilmstrip() {
+        sendAnalytics(createToolbarEvent(
+            'toggle.filmstrip.button',
+            {
+                enable: this.props._visible
+            }));
+
+        this._doToggleFilmstrip();
+    }
+
+    /**
+     * Creates a React Element for changing the visibility of the filmstrip when
+     * clicked.
+     *
+     * @private
+     * @returns {ReactElement}
+     */
+    _renderToggleButton() {
+        const icon = this.props._visible ? IconMenuDown : IconMenuUp;
+
+        return (
+            <div className = 'filmstrip__toolbar'>
+                <button
+                    id = 'toggleFilmstripButton'
+                    onClick = { this._onToolbarToggleFilmstrip }>
+                    <Icon src = { icon } />
+                </button>
+            </div>
+        );
+    }
 }
 
 /**
@@ -174,25 +292,31 @@ class Filmstrip extends Component <Props> {
  * @private
  * @returns {{
  *     _className: string,
+ *     _filmstripOnly: boolean,
  *     _hovered: boolean,
- *     _filmstripOnly: boolean
+ *     _videosClassName: string,
+ *     _visible: boolean
  * }}
  */
 function _mapStateToProps(state) {
-    const { hovered } = state['features/filmstrip'];
+    const { hovered, visible } = state['features/filmstrip'];
     const isFilmstripOnly = Boolean(interfaceConfig.filmStripOnly);
     const reduceHeight = !isFilmstripOnly
         && state['features/toolbox'].visible
         && interfaceConfig.TOOLBAR_BUTTONS.length;
     const remoteVideosVisible = shouldRemoteVideosBeVisible(state);
-
     const className = `${remoteVideosVisible ? '' : 'hide-videos'} ${
-        reduceHeight ? 'reduce-height' : ''}`;
+        reduceHeight ? 'reduce-height' : ''}`.trim();
+    const videosClassName = `filmstrip__videos${
+        isFilmstripOnly ? ' filmstrip__videos-filmstripOnly' : ''}${
+        visible ? '' : ' hidden'}`;
 
     return {
         _className: className,
         _filmstripOnly: isFilmstripOnly,
-        _hovered: hovered
+        _hovered: hovered,
+        _videosClassName: videosClassName,
+        _visible: visible
     };
 }
 

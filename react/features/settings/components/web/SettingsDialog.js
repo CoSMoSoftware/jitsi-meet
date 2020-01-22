@@ -1,16 +1,18 @@
 // @flow
 
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 
 import { getAvailableDevices } from '../../../base/devices';
 import { DialogWithTabs, hideDialog } from '../../../base/dialog';
+import { connect } from '../../../base/redux';
+import { isCalendarEnabled } from '../../../calendar-sync';
 import {
     DeviceSelection,
     getDeviceSelectionDialogProps,
     submitDeviceSelectionTab
 } from '../../../device-selection';
 
+import CalendarTab from './CalendarTab';
 import MoreTab from './MoreTab';
 import ProfileTab from './ProfileTab';
 import { getMoreTabProps, getProfileTabProps } from '../../functions';
@@ -40,7 +42,7 @@ type Props = {
     /**
      * Invoked to save changed settings.
      */
-    dispatch: Function,
+    dispatch: Function
 };
 
 /**
@@ -81,18 +83,21 @@ class SettingsDialog extends Component<Props> {
                 onMount: tab.onMount
                     ? (...args) => dispatch(tab.onMount(...args))
                     : undefined,
-                submit: (...args) => dispatch(tab.submit(...args))
+                submit: (...args) => tab.submit
+                    && dispatch(tab.submit(...args))
             };
         });
 
         return (
             <DialogWithTabs
                 closeDialog = { this._closeDialog }
+                cssClassName = 'settings-dialog'
                 defaultTab = {
                     defaultTabIdx === -1 ? undefined : defaultTabIdx
                 }
                 onSubmit = { onSubmit }
-                tabs = { tabs } />
+                tabs = { tabs }
+                titleKey = 'settings.title' />
         );
     }
 
@@ -129,7 +134,8 @@ function _mapStateToProps(state) {
     const { showModeratorSettings, showLanguageSettings } = moreTabProps;
     const showProfileSettings
         = configuredTabs.includes('profile') && jwt.isGuest;
-
+    const showCalendarSettings
+        = configuredTabs.includes('calendar') && isCalendarEnabled(state);
     const tabs = [];
 
     if (showDeviceSettings) {
@@ -169,12 +175,32 @@ function _mapStateToProps(state) {
         });
     }
 
+    if (showCalendarSettings) {
+        tabs.push({
+            name: SETTINGS_TABS.CALENDAR,
+            component: CalendarTab,
+            label: 'settings.calendar.title',
+            styles: 'settings-pane calendar-pane'
+        });
+    }
+
     if (showModeratorSettings || showLanguageSettings) {
         tabs.push({
             name: SETTINGS_TABS.MORE,
             component: MoreTab,
             label: 'settings.more',
             props: moreTabProps,
+            propsUpdateFunction: (tabState, newProps) => {
+                // Updates tab props, keeping users selection
+
+                return {
+                    ...newProps,
+                    currentLanguage: tabState.currentLanguage,
+                    followMeEnabled: tabState.followMeEnabled,
+                    startAudioMuted: tabState.startAudioMuted,
+                    startVideoMuted: tabState.startVideoMuted
+                };
+            },
             styles: 'settings-pane more-pane',
             submit: submitMoreTab
         });

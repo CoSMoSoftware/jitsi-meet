@@ -26,8 +26,12 @@
 #import <React/RCTBridge.h>
 #import <React/RCTEventEmitter.h>
 #import <React/RCTUtils.h>
+#import <WebRTC/WebRTC.h>
 
 #import <JitsiMeet/JitsiMeet-Swift.h>
+
+#import "LogUtils.h"
+
 
 // The events emitted/supported by RNCallKit:
 static NSString * const RNCallKitPerformAnswerCallAction
@@ -44,20 +48,7 @@ static NSString * const RNCallKitProviderDidReset
 
 @implementation RNCallKit
 
-RCT_EXTERN void RCTRegisterModule(Class);
-
-+ (void)load {
-    // Make the react-native module RNCallKit available (to JS) only if CallKit
-    // is available on the executing operating sytem. For example, CallKit is
-    // not available on iOS 9.
-    if ([CXCallController class]) {
-        RCTRegisterModule(self);
-    }
-}
-
-+ (NSString *)moduleName {
-    return @"RNCallKit";
-}
+RCT_EXPORT_MODULE();
 
 - (NSArray<NSString *> *)supportedEvents {
     return @[
@@ -81,11 +72,15 @@ RCT_EXTERN void RCTRegisterModule(Class);
 RCT_EXPORT_METHOD(endCall:(NSString *)callUUID
                   resolve:(RCTPromiseResolveBlock)resolve
                    reject:(RCTPromiseRejectBlock)reject) {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][endCall] callUUID = %@", callUUID);
-#endif
+    DDLogInfo(@"[RNCallKit][endCall] callUUID = %@", callUUID);
 
     NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
+
     CXEndCallAction *action
         = [[CXEndCallAction alloc] initWithCallUUID:callUUID_];
     [self requestTransaction:[[CXTransaction alloc] initWithAction:action]
@@ -98,11 +93,15 @@ RCT_EXPORT_METHOD(setMuted:(NSString *)callUUID
                      muted:(BOOL)muted
                    resolve:(RCTPromiseResolveBlock)resolve
                     reject:(RCTPromiseRejectBlock)reject) {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][setMuted] callUUID = %@", callUUID);
-#endif
+    DDLogInfo(@"[RNCallKit][setMuted] callUUID = %@", callUUID);
 
     NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
+
     CXSetMutedCallAction *action
         = [[CXSetMutedCallAction alloc] initWithCallUUID:callUUID_ muted:muted];
     [self requestTransaction:[[CXTransaction alloc] initWithAction:action]
@@ -111,11 +110,7 @@ RCT_EXPORT_METHOD(setMuted:(NSString *)callUUID
 }
 
 RCT_EXPORT_METHOD(setProviderConfiguration:(NSDictionary *)dictionary) {
-#ifdef DEBUG
-    NSLog(
-        @"[RNCallKit][setProviderConfiguration:] dictionary = %@",
-        dictionary);
-#endif
+    DDLogInfo(@"[RNCallKit][setProviderConfiguration:] dictionary = %@", dictionary);
 
     if (![JMCallKitProxy isProviderConfigured]) {
         [self configureProviderFromDictionary:dictionary];
@@ -131,9 +126,14 @@ RCT_EXPORT_METHOD(startCall:(NSString *)callUUID
                       video:(BOOL)video
                     resolve:(RCTPromiseResolveBlock)resolve
                      reject:(RCTPromiseRejectBlock)reject) {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][startCall] callUUID = %@", callUUID);
-#endif
+    DDLogInfo(@"[RNCallKit][startCall] callUUID = %@", callUUID);
+
+    NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
 
     // Don't start a new call if there's an active call for the specified
     // callUUID. JitsiMeetView was configured for an incoming call.
@@ -144,7 +144,6 @@ RCT_EXPORT_METHOD(startCall:(NSString *)callUUID
 
     CXHandle *handle_
         = [[CXHandle alloc] initWithType:CXHandleTypeGeneric value:handle];
-    NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
     CXStartCallAction *action
         = [[CXStartCallAction alloc] initWithCallUUID:callUUID_
                                                handle:handle_];
@@ -158,6 +157,12 @@ RCT_EXPORT_METHOD(reportCallFailed:(NSString *)callUUID
                            resolve:(RCTPromiseResolveBlock)resolve
                             reject:(RCTPromiseRejectBlock)reject) {
     NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
+
     [JMCallKitProxy reportCallWith:callUUID_
                            endedAt:nil
                             reason:CXCallEndedReasonFailed];
@@ -169,6 +174,12 @@ RCT_EXPORT_METHOD(reportConnectedOutgoingCall:(NSString *)callUUID
                                       resolve:(RCTPromiseResolveBlock)resolve
                                        reject:(RCTPromiseRejectBlock)reject) {
     NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
+
     [JMCallKitProxy reportOutgoingCallWith:callUUID_
                                connectedAt:nil];
     resolve(nil);
@@ -179,14 +190,15 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
                      options:(NSDictionary *)options
                      resolve:(RCTPromiseResolveBlock)resolve
                       reject:(RCTPromiseRejectBlock)reject) {
-#ifdef DEBUG
-    NSLog(
-        @"[RNCallKit][updateCall] callUUID = %@ options = %@",
-        callUUID,
-        options);
-#endif
+    DDLogInfo(@"[RNCallKit][updateCall] callUUID = %@ options = %@", callUUID, options);
 
     NSUUID *callUUID_ = [[NSUUID alloc] initWithUUIDString:callUUID];
+
+    if (!callUUID_) {
+        reject(nil, [NSString stringWithFormat:@"Invalid UUID: %@", callUUID], nil);
+        return;
+    }
+
     NSString *displayName = options[@"displayName"];
     BOOL hasVideo = [(NSNumber*)options[@"hasVideo"] boolValue];
 
@@ -201,9 +213,7 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 #pragma mark - Helper methods
 
 - (void)configureProviderFromDictionary:(NSDictionary* )dictionary {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][providerConfigurationFromDictionary:]");
-#endif
+    DDLogInfo(@"[RNCallKit][providerConfigurationFromDictionary: %@]", dictionary);
 
     if (!dictionary) {
         dictionary = @{};
@@ -219,14 +229,20 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
     // iconTemplateImageData
     NSString *iconTemplateImageName = dictionary[@"iconTemplateImageName"];
     NSData *iconTemplateImageData;
+    UIImage *iconTemplateImage;
     if (iconTemplateImageName) {
-        UIImage *iconTemplateImage
-            = [UIImage imageNamed:iconTemplateImageName
-                         inBundle:[NSBundle bundleForClass:self.class]
-    compatibleWithTraitCollection:nil];
+        // First try to load the resource from the main bundle.
+        iconTemplateImage = [UIImage imageNamed:iconTemplateImageName];
+
+        // If that didn't work, use the one built-in.
+        if (!iconTemplateImage) {
+            iconTemplateImage = [UIImage imageNamed:iconTemplateImageName
+                                           inBundle:[NSBundle bundleForClass:self.class]
+                      compatibleWithTraitCollection:nil];
+        }
+
         if (iconTemplateImage) {
-            iconTemplateImageData
-                = UIImagePNGRepresentation(iconTemplateImage);
+            iconTemplateImageData = UIImagePNGRepresentation(iconTemplateImage);
         }
     }
 
@@ -241,17 +257,12 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 - (void)requestTransaction:(CXTransaction *)transaction
                    resolve:(RCTPromiseResolveBlock)resolve
                     reject:(RCTPromiseRejectBlock)reject {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][requestTransaction] transaction = %@", transaction);
-#endif
+    DDLogInfo(@"[RNCallKit][requestTransaction] transaction = %@", transaction);
 
     [JMCallKitProxy request:transaction
                  completion:^(NSError * _Nullable error) {
         if (error) {
-            NSLog(
-                @"[RNCallKit][requestTransaction] Error requesting transaction (%@): (%@)",
-                transaction.actions,
-                error);
+            DDLogError(@"[RNCallKit][requestTransaction] Error requesting transaction (%@): (%@)", transaction.actions, error);
             reject(nil, @"Error processing CallKit transaction", error);
         } else {
             resolve(nil);
@@ -263,18 +274,14 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 
 // Called when the provider has been reset. We should terminate all calls.
 - (void)providerDidReset {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][CXProviderDelegate][providerDidReset:]");
-#endif
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][providerDidReset:]");
 
     [self sendEventWithName:RNCallKitProviderDidReset body:nil];
 }
 
 // Answering incoming call
 - (void) performAnswerCallWithUUID:(NSUUID *)UUID {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:performAnswerCallAction:]");
-#endif
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:performAnswerCallAction:]");
 
     [self sendEventWithName:RNCallKitPerformAnswerCallAction
                        body:@{ @"callUUID": UUID.UUIDString }];
@@ -282,9 +289,7 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 
 // Call ended, user request
 - (void) performEndCallWithUUID:(NSUUID *)UUID {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:performEndCallAction:]");
-#endif
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:performEndCallAction:]");
 
     [self sendEventWithName:RNCallKitPerformEndCallAction
                        body:@{ @"callUUID": UUID.UUIDString }];
@@ -293,9 +298,7 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 // Handle audio mute from CallKit view
 - (void) performSetMutedCallWithUUID:(NSUUID *)UUID
                              isMuted:(BOOL)isMuted {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:performSetMutedCallAction:]");
-#endif
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:performSetMutedCallAction:]");
 
     [self sendEventWithName:RNCallKitPerformSetMutedCallAction
                        body:@{
@@ -307,28 +310,37 @@ RCT_EXPORT_METHOD(updateCall:(NSString *)callUUID
 // Starting outgoing call
 - (void) performStartCallWithUUID:(NSUUID *)UUID
                           isVideo:(BOOL)isVideo {
-#ifdef DEBUG
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:performStartCallAction:]");
-#endif
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:performStartCallAction:]");
+
     [JMCallKitProxy reportOutgoingCallWith:UUID
                        startedConnectingAt:nil];
 }
 
-// The following just help with debugging:
-#ifdef DEBUG
-
 - (void) providerDidActivateAudioSessionWithSession:(AVAudioSession *)session {
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:didActivateAudioSession:]");
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:didActivateAudioSession:]");
+
+    [[RTCAudioSession sharedInstance] audioSessionDidActivate:session];
 }
 
 - (void) providerDidDeactivateAudioSessionWithSession:(AVAudioSession *)session {
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:didDeactivateAudioSession:]");
+    DDLogInfo(@"[RNCallKit][CXProviderDelegate][provider:didDeactivateAudioSession:]");
+
+    [[RTCAudioSession sharedInstance] audioSessionDidDeactivate:session];
 }
 
 - (void) providerTimedOutPerformingActionWithAction:(CXAction *)action {
-    NSLog(@"[RNCallKit][CXProviderDelegate][provider:timedOutPerformingAction:]");
+    DDLogWarn(@"[RNCallKit][CXProviderDelegate][provider:timedOutPerformingAction:]");
 }
 
-#endif
+
+// The bridge might already be invalidated by the time a CallKit event is processed,
+// just ignore it and don't emit it.
+- (void)sendEventWithName:(NSString *)name body:(id)body {
+    if (!self.bridge) {
+        return;
+    }
+
+    [super sendEventWithName:name body:body];
+}
 
 @end

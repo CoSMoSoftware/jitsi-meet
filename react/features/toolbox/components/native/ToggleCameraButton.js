@@ -1,9 +1,9 @@
 // @flow
 
-import { connect } from 'react-redux';
-
 import { translate } from '../../../base/i18n';
+import { IconSwitchCamera } from '../../../base/icons';
 import { MEDIA_TYPE, toggleCameraFacingMode } from '../../../base/media';
+import { connect } from '../../../base/redux';
 import { AbstractButton } from '../../../base/toolbox';
 import type { AbstractButtonProps } from '../../../base/toolbox';
 import { isLocalTrackMuted } from '../../../base/tracks';
@@ -34,7 +34,7 @@ type Props = AbstractButtonProps & {
  */
 class ToggleCameraButton extends AbstractButton<Props, *> {
     accessibilityLabel = 'toolbar.accessibilityLabel.toggleCamera';
-    iconName = 'icon-switch-camera';
+    icon = IconSwitchCamera;
     label = 'toolbar.toggleCamera';
 
     /**
@@ -72,7 +72,7 @@ class ToggleCameraButton extends AbstractButton<Props, *> {
  * }}
  */
 function _mapStateToProps(state): Object {
-    const { audioOnly } = state['features/base/conference'];
+    const { enabled: audioOnly } = state['features/base/audio-only'];
     const tracks = state['features/base/tracks'];
 
     return {
